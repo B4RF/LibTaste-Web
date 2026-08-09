@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Spec"
+  short_description: "Implement and verify an approved feature spec"
+  default_prompt: "Use $implement-spec to implement and verify an approved Design Evolution feature spec."

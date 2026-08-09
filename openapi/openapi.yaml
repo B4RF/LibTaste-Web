@@ -1,0 +1,792 @@
+openapi: 3.1.0
+info:
+  title: LibTaste API
+  version: 1.4.0
+  description: |
+    Version-one HTTP contract for LibTaste. Product endpoints are added by their
+    approved feature specifications.
+servers:
+  - url: /api/v1
+    description: Version-one product API
+paths:
+  /auth/steam/authorize:
+    get:
+      operationId: authorizeWithSteam
+      summary: Start Steam OpenID authentication
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - name: return_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - name: code_challenge
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{43}$'
+        - name: code_challenge_method
+          in: query
+          required: true
+          schema:
+            type: string
+            const: S256
+      responses:
+        '302':
+          description: Redirect to Steam without issuing API credentials.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /auth/steam/callback:
+    get:
+      operationId: completeSteamAuthentication
+      summary: Verify the Steam OpenID callback
+      description: Steam supplies its OpenID response fields in addition to the opaque state value.
+      parameters:
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the registered client return URI with a single-use authorization code.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        '401':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /auth/token:
+    post:
+      operationId: exchangeAuthenticationToken
+      summary: Exchange an authorization code or rotate a refresh token
+      description: |
+        Web refresh credentials are returned only as Secure, HttpOnly, SameSite cookies. Android refresh credentials
+        are returned only in the response body. Cookie-based refresh requests require an allowlisted Origin and a
+        matching X-CSRF-Token header/cookie value.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: A short-lived access token and client-appropriate refresh delivery.
+          headers:
+            Set-Cookie:
+              description: Protected refresh and CSRF cookies for web clients only.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /auth/logout:
+    post:
+      operationId: logoutCurrentSession
+      summary: Revoke the current refresh-token family
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Current session revoked; web authentication cookies are cleared.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /auth/logout-all:
+    post:
+      operationId: logoutAllSessions
+      summary: Revoke every refresh-token family for the authenticated subject
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: All sessions revoked; web authentication cookies are cleared.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /me:
+    get:
+      operationId: getMySteamProfile
+      summary: Read the authenticated user's synchronized Steam profile and library state
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Minimal Steam profile and the latest synchronization summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeProfile'
+        '401':
+          $ref: '#/components/responses/Problem'
+    delete:
+      operationId: deleteMyAccount
+      summary: Permanently delete the authenticated user's account
+      description: >-
+        Atomically removes the user's identity, profile, library, synchronization state, sessions, comparisons,
+        cooldowns, personal ratings, and current global aggregate contributions. Non-user-specific game catalog data
+        remains. Previously issued access and refresh credentials are invalid after completion.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Account and all user-specific data were deleted; no representation is returned.
+        '401':
+          $ref: '#/components/responses/Problem'
+  /me/library:
+    get:
+      operationId: getMySteamLibrary
+      summary: Read the authenticated user's imported Steam library
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Opaque continuation cursor from the previous response.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Imported current and historical ownership entries in stable App-ID order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /me/library-sync:
+    get:
+      operationId: getMyLibrarySynchronization
+      summary: Read the authenticated user's latest synchronization job
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Latest durable synchronization job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrarySyncJob'
+        '204':
+          description: No synchronization has been requested yet.
+        '401':
+          $ref: '#/components/responses/Problem'
+    post:
+      operationId: requestMyLibrarySynchronization
+      summary: Request or retrieve an active durable Steam library synchronization
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: A new job was queued or the equivalent active job was returned.
+          headers:
+            Location:
+              schema:
+                type: string
+                const: /api/v1/me/library-sync
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrarySyncJob'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /me/library/{appId}/eligibility:
+    put:
+      operationId: setMyGameEligibility
+      summary: Set the authenticated user's comparison-eligibility behavior for an owned game
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 2147483647
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EligibilityRequest'
+      responses:
+        '200':
+          description: Updated ownership entry with its effective eligibility.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryItem'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /me/leaderboard:
+    get:
+      operationId: getMyGameLeaderboard
+      summary: Read the authenticated user's personal game leaderboard
+      description: Personal score is the conservative TrueSkill value mu minus three sigma and is not comparable to global score.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: includeHistorical
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include imported games that are no longer owned.
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Opaque, expiring continuation cursor from the previous response.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Current personal games, and historical games only when explicitly requested.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalLeaderboardPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /leaderboards/global:
+    get:
+      operationId: getGlobalGameLeaderboard
+      summary: Read the public contributed-games global leaderboard
+      description: Global score is the capped precision-weighted mean and is not comparable to personal score.
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Opaque, expiring continuation cursor from the previous response.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Materialized games with at least one current aggregate contributor; no user-specific data is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalLeaderboardPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /comparisons/next:
+    post:
+      operationId: getNextComparison
+      summary: Return the active comparison or allocate an MMR-selected pair
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The exact server-issued pair and its 24-hour submission window.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comparison'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+  /comparisons/{comparisonId}/result:
+    put:
+      operationId: submitComparisonResult
+      summary: Idempotently finalize the exact server-issued comparison
+      description: Game IDs, orientation, ratings, aggregation values, and model parameters are server-owned.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: comparisonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComparisonResultRequest'
+      responses:
+        '200':
+          description: The newly or previously recorded immutable outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: RS256 access JWT with validated issuer, audience, subject, and expiry.
+  parameters:
+    ClientId:
+      name: client_id
+      in: query
+      required: true
+      schema:
+        type: string
+  schemas:
+    TokenRequest:
+      type: object
+      required:
+        - grant_type
+        - client_id
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - authorization_code
+            - refresh_token
+        client_id:
+          type: string
+        code:
+          type: string
+          description: Single-use authorization code for the authorization_code grant.
+        code_verifier:
+          type: string
+          minLength: 43
+          maxLength: 128
+          description: S256 PKCE verifier for the authorization_code grant.
+        refresh_token:
+          type: string
+          description: Android refresh credential; web clients use the protected cookie instead.
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          description: RS256 JWT valid for 15 minutes.
+        token_type:
+          type: string
+          const: Bearer
+        expires_in:
+          type: integer
+          const: 900
+        refresh_token:
+          type: string
+          description: Present only for Android clients and valid for 30 days.
+    LibrarySyncJob:
+      type: object
+      required:
+        - jobId
+        - trigger
+        - status
+        - attemptCount
+        - requestedAt
+        - runAfter
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        trigger:
+          type: string
+          enum: [LOGIN, MANUAL]
+        status:
+          type: string
+          enum: [PENDING, RUNNING, RETRY_WAIT, SUCCEEDED, FAILED]
+        attemptCount:
+          type: integer
+          minimum: 0
+        requestedAt:
+          type: string
+          format: date-time
+        runAfter:
+          type: string
+          format: date-time
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        completedAt:
+          type: [string, 'null']
+          format: date-time
+        failureCode:
+          type: [string, 'null']
+          description: Safe stable failure code; LIBRARY_UNAVAILABLE means Steam game details must be made public.
+    MeProfile:
+      type: object
+      required:
+        - steamId64
+        - libraryState
+      properties:
+        steamId64:
+          type: string
+          pattern: '^7656119[0-9]{10}$'
+        displayName:
+          type: [string, 'null']
+        avatarUrl:
+          type: [string, 'null']
+          format: uri
+        profileUrl:
+          type: [string, 'null']
+          format: uri
+        libraryState:
+          type: string
+          enum: [NOT_SYNCED, AVAILABLE, UNAVAILABLE]
+        lastProfileSyncAt:
+          type: [string, 'null']
+          format: date-time
+        lastLibrarySyncAt:
+          type: [string, 'null']
+          format: date-time
+        synchronization:
+          oneOf:
+            - $ref: '#/components/schemas/LibrarySyncJob'
+            - type: 'null'
+    LibraryItem:
+      type: object
+      required:
+        - appId
+        - name
+        - artworkUrl
+        - playtimeMinutes
+        - currentlyOwned
+        - eligibilityOverride
+        - effectivelyEligible
+        - firstImportedAt
+        - lastImportedAt
+      properties:
+        appId:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+        iconUrl:
+          type: [string, 'null']
+          format: uri
+        artworkUrl:
+          type: string
+          format: uri
+        playtimeMinutes:
+          type: integer
+          format: int64
+          minimum: 0
+        currentlyOwned:
+          type: boolean
+        eligibilityOverride:
+          type: string
+          enum: [DEFAULT, INCLUDED, EXCLUDED]
+        effectivelyEligible:
+          type: boolean
+        firstImportedAt:
+          type: string
+          format: date-time
+        lastImportedAt:
+          type: string
+          format: date-time
+    LibraryPage:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/LibraryItem'
+        nextCursor:
+          type: [string, 'null']
+    EligibilityRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - behavior
+      properties:
+        behavior:
+          type: string
+          enum: [DEFAULT, INCLUDED, EXCLUDED]
+    ComparisonGame:
+      type: object
+      additionalProperties: false
+      required:
+        - appId
+        - name
+        - artworkUrl
+      properties:
+        appId:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+        artworkUrl:
+          type: string
+          format: uri
+    Comparison:
+      type: object
+      additionalProperties: false
+      required:
+        - comparisonId
+        - left
+        - right
+        - createdAt
+        - expiresAt
+      properties:
+        comparisonId:
+          type: string
+          format: uuid
+        left:
+          $ref: '#/components/schemas/ComparisonGame'
+        right:
+          $ref: '#/components/schemas/ComparisonGame'
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    ComparisonResultRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - outcome
+      properties:
+        outcome:
+          type: string
+          enum: [LEFT_WIN, RIGHT_WIN, DRAW, SKIP]
+    ComparisonResult:
+      type: object
+      additionalProperties: false
+      required:
+        - comparisonId
+        - outcome
+        - completedAt
+      properties:
+        comparisonId:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+          enum: [LEFT_WIN, RIGHT_WIN, DRAW, SKIP]
+        completedAt:
+          type: string
+          format: date-time
+    RankingStatus:
+      type: string
+      enum: [PROVISIONAL, RANKED]
+    PersonalLeaderboardEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - rank
+        - appId
+        - name
+        - artworkUrl
+        - score
+        - comparisonCount
+        - status
+        - currentlyOwned
+        - effectivelyEligible
+      properties:
+        rank:
+          type: integer
+          format: int64
+          minimum: 1
+          description: One-based position in the complete filtered personal ordering.
+        appId:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+        artworkUrl:
+          type: string
+          format: uri
+        score:
+          type: [number, 'null']
+          description: Rounded transport value of personal mu minus three sigma; null without non-skip evidence and not comparable to global score.
+        comparisonCount:
+          type: integer
+          minimum: 0
+          description: Completed non-skip personal comparisons involving this game.
+        status:
+          $ref: '#/components/schemas/RankingStatus'
+        currentlyOwned:
+          type: boolean
+        effectivelyEligible:
+          type: boolean
+    PersonalLeaderboardPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/PersonalLeaderboardEntry'
+        nextCursor:
+          type: [string, 'null']
+    GlobalLeaderboardEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - rank
+        - appId
+        - name
+        - artworkUrl
+        - score
+        - contributorCount
+        - status
+      properties:
+        rank:
+          type: integer
+          format: int64
+          minimum: 1
+          description: One-based position in the complete global ordering.
+        appId:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+        artworkUrl:
+          type: string
+          format: uri
+        score:
+          type: number
+          description: Rounded transport value of weighted_mu_sum divided by precision_sum; not comparable to personal score.
+        contributorCount:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/RankingStatus'
+    GlobalLeaderboardPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/GlobalLeaderboardEntry'
+        nextCursor:
+          type: [string, 'null']
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details with request correlation.
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - requestId
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Stable problem category identifier.
+        title:
+          type: string
+          description: Short user-facing problem summary.
+        status:
+          type: integer
+          format: int32
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+          description: Safe user-facing explanation without raw exception details.
+        instance:
+          type: string
+          format: uri-reference
+        requestId:
+          type: string
+          description: Value returned in the X-Request-ID response header.
+  responses:
+    Problem:
+      description: Safe RFC 9457 error response.
+      headers:
+        X-Request-ID:
+          description: Accepted or generated request correlation identifier.
+          schema:
+            type: string
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
