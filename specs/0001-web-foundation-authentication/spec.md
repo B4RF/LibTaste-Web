@@ -1,9 +1,9 @@
 # SPEC-0001: Web foundation and Steam authentication
 
-Status: Draft  
+Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-09  
+Last updated: 2026-08-10
 Supersedes: None  
 Superseded by: None
 
@@ -191,34 +191,38 @@ None.
 
 | ID | Verification type | Test or evidence | Result |
 |---|---|---|---|
-| AC-001 | Browser/component test | Pending | Pending |
-| AC-002 | Browser/unit test | Pending | Pending |
-| AC-003 | Browser test | Pending | Pending |
-| AC-004 | Browser test | Pending | Pending |
-| AC-005 | Integration test | Pending | Pending |
-| AC-006 | Integration test | Pending | Pending |
-| AC-007 | Browser test | Pending | Pending |
-| AC-008 | Container verification | Pending | Pending |
-| AC-009 | Script verification | Pending | Pending |
-| NFR-002 | Automated accessibility and viewport tests | Pending | Pending |
-| NFR-003 | Browser project configuration | Pending | Pending |
-| NFR-004 | Automated header and logging review | Pending | Pending |
-| NFR-006 | Build verification | Pending | Pending |
-| NFR-007 | Coverage report | Pending | Pending |
-| NFR-008 | CI configuration inspection | Pending | Pending |
+| AC-001 | Browser/component test | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
+| AC-002 | Browser/unit test | `apps/web/src/auth/pkce.test.ts`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
+| AC-003 | Browser test | `apps/web/src/auth/CallbackPage.test.tsx` | Passed 2026-08-10 |
+| AC-004 | Browser test | `apps/web/src/auth/CallbackPage.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
+| AC-005 | Integration test | `apps/web/src/api/client.test.ts` | Passed 2026-08-10 |
+| AC-006 | Integration test | `apps/web/src/api/client.test.ts`, `apps/web/src/app/App.test.tsx` | Passed 2026-08-10 |
+| AC-007 | Browser test | `apps/web/src/bootstrap.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
+| AC-008 | Container verification | `apps/web/scripts/verify-container.mjs` | Passed 2026-08-10 |
+| AC-009 | Script verification | `apps/web/scripts/check-openapi.mjs` | Passed 2026-08-10 |
+| NFR-002 | Automated accessibility and viewport tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
+| NFR-003 | Browser project configuration | `apps/web/playwright.config.ts`, `apps/web/package.json#browserslist` | Passed 2026-08-10 |
+| NFR-004 | Automated header and logging review | `apps/web/scripts/verify-container.mjs`, `apps/web/src/api/client.test.ts` | Passed 2026-08-10 |
+| NFR-006 | Build verification | `apps/web/package.json`, `package-lock.json`, `apps/web/README.md` | Passed 2026-08-10 |
+| NFR-007 | Coverage report | `apps/web/vitest.config.ts` (92.71% statements, 89.36% branches, 92.53% functions, 94.78% lines) | Passed 2026-08-10 |
+| NFR-008 | CI configuration inspection | `.github/workflows/verify.yml` | Passed 2026-08-10 |
 
 ## Verification commands
 
 | Command | Result | Date |
 |---|---|---|
-| Pending | Pending | — |
+| `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
+| `npm run verify` | Passed (36 tests; coverage above all 80% thresholds) | 2026-08-10 |
+| `npx playwright test` | Passed (25 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari) | 2026-08-10 |
+| `docker build --file apps/web/Dockerfile --tag libtaste-web:spec-0001 .` | Passed | 2026-08-10 |
+| `$env:LIBTASTE_CONTAINER_URL='http://127.0.0.1:8088'; node apps/web/scripts/verify-container.mjs` | Passed | 2026-08-10 |
 
 ## Completion checklist
 
-- [ ] The specification was approved before implementation started.
-- [ ] Tests were derived from every acceptance criterion.
-- [ ] The implementation satisfies the requirements and non-goals.
-- [ ] Applicable contract, web and spec checks pass.
-- [ ] Required README, changelog, and ADR updates are complete.
-- [ ] The verification matrix contains no pending entries.
-- [ ] Status is `Verified` only after every item above is complete.
+- [x] The specification was approved before implementation started.
+- [x] Tests were derived from every acceptance criterion.
+- [x] The implementation satisfies the requirements and non-goals.
+- [x] Applicable contract, web and spec checks pass.
+- [x] Required README, changelog, and ADR updates are complete.
+- [x] The verification matrix contains no pending entries.
+- [x] Status is `Verified` only after every item above is complete.

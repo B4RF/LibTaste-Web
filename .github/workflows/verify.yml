@@ -1,0 +1,44 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node scripts/validate-specs.mjs
+      - run: npm run openapi:check
+      - run: npm run format
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run coverage
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run e2e
+      - run: docker build --file apps/web/Dockerfile --tag libtaste-web:verify .
+      - run: >-
+          docker run --detach --name libtaste-web --publish 127.0.0.1:8088:8080
+          --env LIBTASTE_API_BASE_URL=https://api.example.test/api/v1
+          --env LIBTASTE_WEB_CLIENT_ID=ci-browser
+          --env LIBTASTE_ENVIRONMENT_LABEL=CI
+          libtaste-web:verify
+      - run: |
+          for attempt in {1..20}; do
+            curl --fail http://127.0.0.1:8088/healthz && break
+            sleep 1
+          done
+          LIBTASTE_CONTAINER_URL=http://127.0.0.1:8088 node apps/web/scripts/verify-container.mjs

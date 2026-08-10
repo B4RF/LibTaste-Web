@@ -1,0 +1,5 @@
+apps/web/dist/
+apps/web/coverage/
+apps/web/playwright-report/
+apps/web/src/api/generated.ts
+apps/web/test-results/

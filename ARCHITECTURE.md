@@ -13,6 +13,10 @@ flowchart TD
 
 | Module         | Responsibility                                     | Path                                                            |
 |----------------|----------------------------------------------------|-----------------------------------------------------------------|
+| Web application | React SPA, routes, session UI, and feature boundaries | `apps/web/src/` |
+| API contract | Versioned HTTP interface consumed by the web client | `openapi/openapi.yaml` |
+| Generated web contract | TypeScript representation generated from OpenAPI | `apps/web/src/api/generated.ts` |
+| Static runtime | Nginx route fallback, runtime config, health, compression, and headers | `apps/web/nginx/`, `apps/web/docker/` |
 
 ## Data flow
 
@@ -27,6 +31,11 @@ flowchart TD
 
 | Choice                      | Alternative considered  | Why this choice                                                                    |
 |-----------------------------|-------------------------|------------------------------------------------------------------------------------|
+| React + Vite SPA | Server-side rendering | Authenticated product routes do not need search rendering; a static artifact keeps runtime and rollout small. |
+| React Router | Hand-written history routing | Declarative public/protected route ownership and reliable SPA fallback. |
+| TanStack Query | General global state store | Server state receives caching and cancellation semantics while auth remains a small context. |
+| Runtime `config.json` | Build-time environment variables | One verified image can move between environments without rebuilding or embedding secrets. |
+| In-memory access token + protected refresh cookie | Browser token persistence | Limits JavaScript-accessible credential lifetime and delegates refresh protection to HttpOnly/SameSite cookies. |
 
 ## Non-Functional Requirements (NFRs)
 
@@ -43,6 +52,11 @@ flowchart TD
 - README.md files of impacted packages are kept up-to-date
 
 ### Security
+
+- Browser access tokens are retained only in memory; refresh credentials remain in protected cookies.
+- Web refresh requests use credentialed exact-origin requests and echo the readable CSRF cookie.
+- The static server applies a restrictive Content Security Policy and standard browser security headers.
+- Runtime configuration is non-secret and validated before product or authentication requests start.
 
 ## Architectural decisions
 

@@ -1,0 +1,21 @@
+{
+  "name": "libtaste-web-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace apps/web",
+    "coverage": "npm run coverage --workspace apps/web",
+    "e2e": "npm run e2e --workspace apps/web",
+    "format": "prettier --check package.json apps/web .github/workflows/verify.yml",
+    "format:write": "prettier --write package.json apps/web .github/workflows/verify.yml",
+    "lint": "npm run lint --workspace apps/web",
+    "openapi:check": "npm run openapi:check --workspace apps/web",
+    "openapi:generate": "npm run openapi:generate --workspace apps/web",
+    "test": "npm run test --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace apps/web",
+    "verify": "npm run format && npm run lint && npm run typecheck && npm run test && npm run coverage && npm run openapi:check && npm run build"
+  }
+}
