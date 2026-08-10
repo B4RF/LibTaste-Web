@@ -132,6 +132,18 @@ export class SessionManager {
     return this.refreshPromise;
   }
 
+  async publicRequest(path: string, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", headers.get("Accept") ?? "application/json");
+    const response = await this.fetcher(`${this.config.apiBaseUrl}${path}`, {
+      ...init,
+      headers,
+      credentials: "omit",
+    });
+    if (!response.ok) throw await toApiProblem(response);
+    return response;
+  }
+
   async request(path: string, init: RequestInit = {}): Promise<Response> {
     const send = async (token: string): Promise<Response> => {
       const headers = new Headers(init.headers);

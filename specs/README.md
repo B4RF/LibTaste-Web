@@ -95,5 +95,5 @@ the validator checks declared relationships, not semantic meaning.
 | [SPEC-0001](./0001-web-foundation-authentication/spec.md)         | Web foundation and Steam authentication     | Verified |
 | [SPEC-0002](./0002-steam-library-management/spec.md)              | Steam profile and library management        | Verified |
 | [SPEC-0003](./0003-pairwise-comparisons/spec.md)                  | Pairwise game comparisons                   | Verified |
-| [SPEC-0004](./0004-game-leaderboards/spec.md)                     | Personal and global game leaderboards       | Draft    |
+| [SPEC-0004](./0004-game-leaderboards/spec.md)                     | Personal and global game leaderboards       | Verified |
 | [SPEC-0005](./0005-account-session-settings/spec.md)              | Account and session settings                | Draft    |

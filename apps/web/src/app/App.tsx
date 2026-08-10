@@ -8,6 +8,10 @@ import { ProtectedRoute } from "../auth/ProtectedRoute";
 import type { RuntimeConfig } from "../config";
 import { copy } from "../content/copy";
 import { ComparePage } from "../features/comparisons/ComparePage";
+import {
+  GlobalLeaderboardPage,
+  PersonalLeaderboardPage,
+} from "../features/leaderboards/LeaderboardPage";
 import { LibraryPage } from "../features/library/LibraryPage";
 import { ProfileSyncStatus } from "../features/library/ProfileSyncStatus";
 import styles from "../styles/App.module.css";
@@ -89,16 +93,6 @@ function ProductPlaceholder({ title }: { title: string }) {
   );
 }
 
-function GlobalLeaderboardEntry() {
-  return (
-    <section className={styles.centeredPanel}>
-      <p className={styles.eyebrow}>{copy.routes.globalEyebrow}</p>
-      <h1>{copy.routes.globalTitle}</h1>
-      <p>{copy.routes.globalSummary}</p>
-    </section>
-  );
-}
-
 function NotFound() {
   return (
     <section className={styles.centeredPanel}>
@@ -120,10 +114,7 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
           path="/auth/callback"
           element={<CallbackPage config={config} />}
         />
-        <Route
-          path="/leaderboard/global"
-          element={<GlobalLeaderboardEntry />}
-        />
+        <Route path="/leaderboard/global" element={<GlobalLeaderboardPage />} />
         {protectedPages.map((page) => (
           <Route
             key={page.path}
@@ -132,6 +123,8 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
               <ProtectedRoute config={config}>
                 {page.path === "/compare" ? (
                   <ComparePage />
+                ) : page.path === "/leaderboard/me" ? (
+                  <PersonalLeaderboardPage />
                 ) : page.path === "/library" ? (
                   <LibraryPage />
                 ) : (

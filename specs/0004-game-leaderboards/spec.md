@@ -1,9 +1,9 @@
 # SPEC-0004: Personal and global game leaderboards
 
-Status: Draft  
+Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-09  
+Last updated: 2026-08-10
 Supersedes: None  
 Superseded by: None
 
@@ -153,31 +153,33 @@ None.
 
 | ID | Verification type | Test or evidence | Result |
 |---|---|---|---|
-| AC-001 | Browser test | Pending | Pending |
-| AC-002 | Browser test | Pending | Pending |
-| AC-003 | Integration test | Pending | Pending |
-| AC-004 | Browser test | Pending | Pending |
-| AC-005 | Browser test | Pending | Pending |
-| AC-006 | Component accessibility test | Pending | Pending |
-| AC-007 | Content/component test | Pending | Pending |
-| AC-008 | Browser test | Pending | Pending |
-| NFR-001 | Automated accessibility and viewport tests | Pending | Pending |
-| NFR-002 | Performance-oriented component test | Pending | Pending |
-| NFR-003 | Network-boundary test | Pending | Pending |
-| NFR-004 | Contract fixture review | Pending | Pending |
+| AC-001 | Browser test | `apps/web/src/features/leaderboards/LeaderboardPage.test.tsx`; `apps/web/e2e/leaderboards.spec.ts` public session-isolation journey | Passed 2026-08-10 |
+| AC-002 | Browser test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` personal ranking journey | Passed 2026-08-10 |
+| AC-003 | Integration test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` current-to-historical first-page replacement | Passed 2026-08-10 |
+| AC-004 | Browser test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` opaque-cursor append and duplicate suppression | Passed 2026-08-10 |
+| AC-005 | Browser test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` retained-row identical-cursor retry | Passed 2026-08-10 |
+| AC-006 | Component accessibility test | `LeaderboardPage.test.tsx` null score, Provisional copy, and axe assertions | Passed 2026-08-10 |
+| AC-007 | Content/component test | `LeaderboardPage.test.tsx` distinct personal/global score and evidence labels | Passed 2026-08-10 |
+| AC-008 | Browser/component test | `LeaderboardPage.test.tsx` truthful global empty state without rows | Passed 2026-08-10 |
+| NFR-001 | Automated accessibility and viewport tests | `LeaderboardPage.test.tsx` axe audits; `leaderboards.spec.ts` narrow-screen overflow assertion across five browser projects | Passed 2026-08-10 |
+| NFR-002 | Performance-oriented component test | `LeaderboardPage.test.tsx` renders 100 contract-shaped rows with lazy artwork and content visibility | Passed 2026-08-10 |
+| NFR-003 | Network/cache-boundary test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` assert only a public cache entry and no refresh, credential, token, or personal request on the public route | Passed 2026-08-10 |
+| NFR-004 | Contract fixture review | OpenAPI-typed fixtures in `LeaderboardPage.test.tsx` and contract-shaped browser fixtures in `leaderboards.spec.ts` | Passed 2026-08-10 |
 
 ## Verification commands
 
 | Command | Result | Date |
 |---|---|---|
-| Pending | Pending | — |
+| `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 62 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-10 |
+| `npm.cmd run e2e --workspace apps/web -- --workers=1` | Passed: 65 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-10 |
 
 ## Completion checklist
 
-- [ ] The specification was approved before implementation started.
-- [ ] Tests were derived from every acceptance criterion.
-- [ ] The implementation satisfies the requirements and non-goals.
-- [ ] Applicable contract, web and spec checks pass.
-- [ ] Required README, changelog, and ADR updates are complete.
-- [ ] The verification matrix contains no pending entries.
-- [ ] Status is `Verified` only after every item above is complete.
+- [x] The specification was approved before implementation started.
+- [x] Tests were derived from every acceptance criterion.
+- [x] The implementation satisfies the requirements and non-goals.
+- [x] Applicable contract, web and spec checks pass.
+- [x] Required README, changelog, and ADR updates are complete.
+- [x] The verification matrix contains no pending entries.
+- [x] Status is `Verified` only after every item above is complete.

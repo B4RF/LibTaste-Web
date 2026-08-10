@@ -1,7 +1,7 @@
 # LibTaste web application
 
 React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, Steam
-profile and library management, pairwise game comparisons, and protected product routes.
+profile and library management, pairwise game comparisons, and personal and global game leaderboards.
 
 ## Development
 
@@ -68,6 +68,18 @@ comparison ID and outcome, and successful submissions briefly announce the resul
 Keyboard shortcuts are L for left, R for right, D for draw, and S for skip. They remain inactive when another
 interactive or text-entry control has focus. Expired or conflicting pairs are discarded, and allocation failures expose
 distinct synchronization, eligibility, rate-limit, and no-pair recovery states using stable Problem Details types.
+
+## Game leaderboards
+
+The public Global route reads the contributed-games leaderboard without restoring a session, sending credentials, or
+creating user-scoped cache data. The protected My Ranking route defaults to currently owned games and can replace that
+view with a first-page historical request. Both leaderboards:
+
+- preserve the API's rank and entry order while appending opaque cursor pages;
+- retain completed pages and retry the same cursor after a later-page failure;
+- distinguish loading, empty, rate-limited, retry, and terminal states;
+- render lazy artwork, status, evidence counts, and transport score precision in responsive semantic tables; and
+- explain Provisional and Ranked status while keeping personal and global score meanings explicitly non-comparable.
 
 ## Verification
 

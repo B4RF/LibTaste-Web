@@ -16,3 +16,5 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
   server-confirmed game eligibility controls.
 - Added accessible pairwise comparisons with immediate left/right/draw/skip outcomes, idempotent retry, expiry and
   allocation recovery, responsive artwork cards, and focus-safe keyboard shortcuts.
+- Added public global and protected personal game leaderboards with responsive semantic tables, historical-game views,
+  opaque cursor pagination, stable retry behavior, and distinct score and evidence explanations.

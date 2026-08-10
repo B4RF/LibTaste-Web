@@ -427,6 +427,102 @@
   border-left: 3px solid var(--color-danger);
 }
 
+.leaderboardPage {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.leaderboardHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.leaderboardHeader > div {
+  max-width: 54rem;
+}
+
+.leaderboardHeader h1 {
+  margin-bottom: var(--space-4);
+}
+
+.leaderboardHelp {
+  color: var(--color-muted);
+}
+
+.leaderboardHelp strong {
+  color: var(--color-text);
+}
+
+.historyToggle {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.historyToggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.leaderboardTableRegion {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.leaderboardTable {
+  width: 100%;
+  min-width: 48rem;
+  border-collapse: collapse;
+}
+
+.leaderboardTable th,
+.leaderboardTable td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.leaderboardTable thead th {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.leaderboardTable tbody tr {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 5rem;
+}
+
+.leaderboardTable tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.leaderboardTable tbody th {
+  min-width: 10rem;
+  font-size: 1.05rem;
+}
+
+.leaderboardArtwork {
+  width: 8rem;
+}
+
+.leaderboardArtwork > * {
+  min-width: 5rem;
+}
+
 .comparePage {
   display: grid;
   gap: var(--space-8);
@@ -602,6 +698,15 @@ kbd {
   .libraryHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .leaderboardHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .historyToggle {
+    align-self: flex-start;
   }
 
   .comparisonGrid {

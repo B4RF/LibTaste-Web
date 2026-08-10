@@ -38,8 +38,6 @@ export const copy = {
     signedIn: "Signed in",
     globalEyebrow: "Public",
     globalTitle: "Global leaderboard",
-    globalSummary:
-      "The public leaderboard route is available without a Steam session.",
     notFoundEyebrow: "404",
     notFoundTitle: "That page is not here.",
     notFoundAction: "Return home",
@@ -124,6 +122,65 @@ export const copy = {
         title: "A comparison could not be loaded",
         detail: "Try retrieving the current server state again.",
       },
+    },
+  },
+  leaderboards: {
+    loadMore: "Load more",
+    retryMore: "Retry loading more",
+    rateLimited:
+      "Leaderboard requests are temporarily rate limited. Wait for the API cooldown before trying again.",
+    columns: {
+      rank: "Rank",
+      artwork: "Artwork",
+      game: "Game",
+      status: "Status",
+      contributors: "Contributors",
+      comparisons: "Comparisons",
+      ownership: "Ownership",
+      eligibility: "Eligibility",
+      globalScore: "Global score",
+      personalScore: "Personal score",
+    },
+    status: {
+      provisional: "Provisional",
+      provisionalMeaning:
+        "the game does not yet have enough evidence for ranked status.",
+      ranked: "Ranked",
+      rankedMeaning:
+        "the API has enough evidence to classify the game as ranked.",
+    },
+    global: {
+      summary:
+        "Browse the public contributed-games ranking in the API's server-provided order.",
+      scoreHelp:
+        "Global score is the API's capped precision-weighted mean across contributors. Personal and global scores have different meanings and must not be directly compared.",
+      tableLabel: "Global game rankings",
+      loading: "Loading global leaderboard…",
+      loadingMore: "Loading more global rankings…",
+      empty: "No games have entered the global leaderboard yet.",
+      end: "End of global leaderboard",
+      contributors: (count: number) =>
+        `${count} ${count === 1 ? "contributor" : "contributors"}`,
+    },
+    personal: {
+      eyebrow: "Your ordered library",
+      summary:
+        "Browse your personal game order using current ownership by default.",
+      scoreHelp:
+        "Personal score is the API's conservative rating (mu minus three sigma). Personal and global scores have different meanings and must not be directly compared.",
+      tableLabel: "Personal game rankings",
+      includeHistorical: "Include historical games",
+      loading: "Loading personal leaderboard…",
+      loadingMore: "Loading more personal rankings…",
+      empty: "No games are available in this personal leaderboard view.",
+      end: "End of personal leaderboard",
+      unscored: "Not yet scored",
+      current: "Currently owned",
+      historical: "Historical ownership",
+      eligible: "Eligible",
+      ineligible: "Not eligible",
+      comparisons: (count: number) =>
+        `${count} ${count === 1 ? "comparison" : "comparisons"}`,
     },
   },
   library: {

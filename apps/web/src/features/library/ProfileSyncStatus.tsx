@@ -42,8 +42,8 @@ function syncLabel(job: LibrarySyncJob): string {
   }
 }
 
-export function ProfileSyncStatus() {
-  const { session, status } = useAuth();
+function AuthenticatedProfileSyncStatus() {
+  const { session } = useAuth();
   const queryClient = useQueryClient();
   const profileQuery = useProfileQuery();
   const job = profileQuery.data?.synchronization;
@@ -66,15 +66,15 @@ export function ProfileSyncStatus() {
   );
 
   useEffect(() => {
-    if (status !== "authenticated" || !job || !isActiveSync(job)) return;
+    if (!job || !isActiveSync(job)) return;
     return startSyncPolling({
       initialJob: job,
       request: (signal) => getSyncJob(session, signal),
       onUpdate: recordUpdate,
     });
-  }, [job, recordUpdate, session, status]);
+  }, [job, recordUpdate, session]);
 
-  if (status !== "authenticated" || !profileQuery.data) return null;
+  if (!profileQuery.data) return null;
   const profile = profileQuery.data;
   return (
     <aside
@@ -106,4 +106,9 @@ export function ProfileSyncStatus() {
       </div>
     </aside>
   );
+}
+
+export function ProfileSyncStatus() {
+  const { status } = useAuth();
+  return status === "authenticated" ? <AuthenticatedProfileSyncStatus /> : null;
 }
