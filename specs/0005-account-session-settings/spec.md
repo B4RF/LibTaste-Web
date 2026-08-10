@@ -1,9 +1,9 @@
 # SPEC-0005: Account and session settings
 
-Status: Draft  
+Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-09  
+Last updated: 2026-08-10
 Supersedes: None  
 Superseded by: None
 
@@ -153,30 +153,32 @@ None.
 
 | ID | Verification type | Test or evidence | Result |
 |---|---|---|---|
-| AC-001 | Browser test | Pending | Pending |
-| AC-002 | Browser test | Pending | Pending |
-| AC-003 | Browser accessibility test | Pending | Pending |
-| AC-004 | Browser test | Pending | Pending |
-| AC-005 | Integration test | Pending | Pending |
-| AC-006 | Browser test | Pending | Pending |
-| AC-007 | Browser test | Pending | Pending |
-| NFR-001 | Automated accessibility test | Pending | Pending |
-| NFR-002 | Request-security test | Pending | Pending |
-| NFR-003 | Browser suite review | Pending | Pending |
-| NFR-004 | Content review | Pending | Pending |
+| AC-001 | Browser/component test | `apps/web/src/features/settings/SettingsPage.test.tsx`; `apps/web/e2e/settings.spec.ts` current-device logout and guarded-navigation journey | Passed 2026-08-10 |
+| AC-002 | Browser/component test | `SettingsPage.test.tsx`; `settings.spec.ts` explicit all-device confirmation and local sign-out journey | Passed 2026-08-10 |
+| AC-003 | Browser accessibility test | `SettingsPage.test.tsx`; `settings.spec.ts` exact typed confirmation, consequence-copy, focus-restoration, and Escape cases | Passed 2026-08-10 |
+| AC-004 | Component/transport test | `SettingsPage.test.tsx` pending cardinality and `204` completion; `apps/web/src/api/client.test.ts` one-shot destructive request | Passed 2026-08-10 |
+| AC-005 | Integration test | `SettingsPage.test.tsx` recoverable Problem Details and explicit retry case | Passed 2026-08-10 |
+| AC-006 | Browser/component test | `SettingsPage.test.tsx`; `settings.spec.ts` connection-end recovery without automatic `DELETE` replay | Passed 2026-08-10 |
+| AC-007 | Browser test | `SettingsPage.test.tsx`; `settings.spec.ts` protected navigation after session clearing | Passed 2026-08-10 |
+| NFR-001 | Automated accessibility test | `SettingsPage.test.tsx` axe audit, keyboard focus restoration, and exact typed confirmation; five-project responsive browser journey | Passed 2026-08-10 |
+| NFR-002 | Request-security test | `client.test.ts`; `settings.spec.ts` bearer, credential, CSRF, and one-request assertions | Passed 2026-08-10 |
+| NFR-003 | Browser suite review | `AuthContext.test.tsx`, `SettingsPage.test.tsx`, and `settings.spec.ts` cover cardinality, cancellation, cache isolation, stale navigation, and uncertain recovery | Passed 2026-08-10 |
+| NFR-004 | Content review | `SettingsPage.test.tsx` asserts permanent LibTaste/Steam account boundary and no restore offer | Passed 2026-08-10 |
 
 ## Verification commands
 
 | Command | Result | Date |
 |---|---|---|
-| Pending | Pending | — |
+| `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 74 tests, coverage (89.59% statements, 83.11% branches, 91.42% functions, 91.76% lines), OpenAPI drift check, and production build | 2026-08-10 |
+| `npm.cmd run e2e --workspace apps/web -- --workers=1` | Passed: 80 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-10 |
 
 ## Completion checklist
 
-- [ ] The specification was approved before implementation started.
-- [ ] Tests were derived from every acceptance criterion.
-- [ ] The implementation satisfies the requirements and non-goals.
-- [ ] Applicable contract, web and spec checks pass.
-- [ ] Required README, changelog, and ADR updates are complete.
-- [ ] The verification matrix contains no pending entries.
-- [ ] Status is `Verified` only after every item above is complete.
+- [x] The specification was approved before implementation started.
+- [x] Tests were derived from every acceptance criterion.
+- [x] The implementation satisfies the requirements and non-goals.
+- [x] Applicable contract, web and spec checks pass.
+- [x] Required README, changelog, and ADR updates are complete.
+- [x] The verification matrix contains no pending entries.
+- [x] Status is `Verified` only after every item above is complete.

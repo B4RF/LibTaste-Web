@@ -168,4 +168,51 @@ describe("SessionManager", () => {
     await expect(session.refresh()).rejects.toBeInstanceOf(ApiProblem);
     expect(fetcher).not.toHaveBeenCalled();
   });
+
+  it("sends a destructive request exactly once with bearer, credentials, and CSRF", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    const session = new SessionManager(config, { fetcher });
+
+    await session.requestOnce("/me", { method: "DELETE" });
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const request = fetcher.mock.calls[1]![1]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.credentials).toBe("include");
+    expect(new Headers(request.headers).get("Authorization")).toBe(
+      "Bearer access-1",
+    );
+    expect(new Headers(request.headers).get("X-CSRF-Token")).toBe("csrf-value");
+  });
+
+  it("does not replay a destructive request after an unauthorized response", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+    const session = new SessionManager(config, { fetcher });
+
+    await expect(
+      session.requestOnce("/auth/logout-all", { method: "POST" }),
+    ).rejects.toMatchObject({ status: 401 });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("checks the cookie-backed session after an uncertain destructive result", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(token("before-delete"))
+      .mockResolvedValueOnce(token("recovered"));
+    const session = new SessionManager(config, { fetcher });
+    await session.refresh();
+
+    await expect(session.recoverSession()).resolves.toBe("authenticated");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(String(fetcher.mock.calls[1]![1]?.body)).toContain(
+      '"grant_type":"refresh_token"',
+    );
+  });
 });

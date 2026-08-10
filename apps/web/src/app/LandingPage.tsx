@@ -1,16 +1,24 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { RuntimeConfig } from "../config";
 import { copy } from "../content/copy";
 import styles from "../styles/App.module.css";
 import { startAuthentication } from "../auth/pkce";
 
 export function LandingPage({ config }: { config: RuntimeConfig }) {
+  const location = useLocation();
+  const sessionMessage = (location.state as { sessionMessage?: unknown } | null)
+    ?.sessionMessage;
   return (
     <section className={styles.hero} aria-labelledby="landing-title">
       <div className={styles.heroCopy}>
         <p className={styles.eyebrow}>{copy.landing.eyebrow}</p>
         <h1 id="landing-title">{copy.landing.title}</h1>
         <p className={styles.lede}>{copy.landing.summary}</p>
+        {typeof sessionMessage === "string" ? (
+          <p className={styles.sessionMessage} role="status">
+            {sessionMessage}
+          </p>
+        ) : null}
         <div className={styles.actions}>
           <button
             className={styles.primaryButton}

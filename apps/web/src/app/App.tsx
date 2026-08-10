@@ -14,6 +14,7 @@ import {
 } from "../features/leaderboards/LeaderboardPage";
 import { LibraryPage } from "../features/library/LibraryPage";
 import { ProfileSyncStatus } from "../features/library/ProfileSyncStatus";
+import { SettingsPage } from "../features/settings/SettingsPage";
 import styles from "../styles/App.module.css";
 import { LandingPage } from "./LandingPage";
 
@@ -21,22 +22,18 @@ const protectedPages = [
   {
     path: "/compare",
     label: copy.navigation.compare,
-    title: copy.routes.compare,
   },
   {
     path: "/leaderboard/me",
     label: copy.navigation.personalRanking,
-    title: copy.routes.personalRanking,
   },
   {
     path: "/library",
     label: copy.navigation.library,
-    title: copy.routes.library,
   },
   {
     path: "/settings",
     label: copy.navigation.settings,
-    title: copy.routes.settings,
   },
 ] as const;
 
@@ -83,16 +80,6 @@ function Shell({
   );
 }
 
-function ProductPlaceholder({ title }: { title: string }) {
-  return (
-    <section className={styles.centeredPanel}>
-      <p className={styles.eyebrow}>{copy.routes.signedIn}</p>
-      <h1>{title}</h1>
-      <p>{copy.protected.ready}</p>
-    </section>
-  );
-}
-
 function NotFound() {
   return (
     <section className={styles.centeredPanel}>
@@ -128,7 +115,7 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
                 ) : page.path === "/library" ? (
                   <LibraryPage />
                 ) : (
-                  <ProductPlaceholder title={page.title} />
+                  <SettingsPage />
                 )}
               </ProtectedRoute>
             }

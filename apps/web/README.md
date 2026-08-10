@@ -1,7 +1,8 @@
 # LibTaste web application
 
 React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, Steam
-profile and library management, pairwise game comparisons, and personal and global game leaderboards.
+profile and library management, pairwise game comparisons, personal and global game leaderboards, and account/session
+settings.
 
 ## Development
 
@@ -80,6 +81,17 @@ view with a first-page historical request. Both leaderboards:
 - distinguish loading, empty, rate-limited, retry, and terminal states;
 - render lazy artwork, status, evidence counts, and transport score precision in responsive semantic tables; and
 - explain Provisional and Ranked status while keeping personal and global score meanings explicitly non-comparable.
+
+## Account and session settings
+
+The protected Settings route can end the current browser session, explicitly confirm revocation of every LibTaste
+session, or permanently delete the LibTaste account after exact `DELETE` confirmation. Destructive requests use bearer,
+credential, and CSRF protection and are sent only once; an uncertain deletion checks ordinary cookie-backed session
+state without automatically repeating the request.
+
+Confirmed session clearing cancels protected queries and polling, removes user-scoped profile, library, comparison, and
+personal-leaderboard caches, clears transient PKCE data, and leaves only non-sensitive public caches such as the global
+leaderboard. Protected history then passes through the normal signed-out route guard.
 
 ## Verification
 

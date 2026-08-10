@@ -28,7 +28,6 @@ export const copy = {
     title: "Sign in to continue",
     summary: "This area uses your Steam library and personal LibTaste ranking.",
     checking: "Checking your LibTaste session…",
-    ready: "This protected route is ready for its feature implementation.",
   },
   routes: {
     compare: "Compare games",
@@ -233,6 +232,60 @@ export const copy = {
       succeeded: "Synchronization succeeded",
       failed: "Synchronization failed",
       unavailable: "Steam library unavailable",
+    },
+  },
+  settings: {
+    eyebrow: "Account and session controls",
+    summary:
+      "Control this browser session, revoke every LibTaste session, or permanently delete your LibTaste account.",
+    cancel: "Cancel",
+    current: {
+      title: "This device",
+      detail:
+        "End the LibTaste session in this browser. Other signed-in devices remain active.",
+      action: "Log out this device",
+      pending: "Logging out this device…",
+    },
+    all: {
+      title: "Every device",
+      detail:
+        "Revoke all LibTaste sessions, including the session in this browser.",
+      action: "Log out all devices",
+      dialogTitle: "Log out all devices",
+      confirmation:
+        "This ends every current LibTaste session. You will need to sign in again on each device.",
+      confirmAction: "Confirm log out all devices",
+      pending: "Logging out all devices…",
+    },
+    deletion: {
+      title: "Delete account",
+      detail:
+        "Permanently remove your LibTaste account and all data tied to your identity.",
+      action: "Delete account",
+      dialogTitle: "Permanently delete account",
+      consequences:
+        "This permanently removes your identity, profile, library, synchronization, sessions, comparisons, personal ratings, and current global contributions. Shared non-user-specific game catalog data remains.",
+      steamBoundary:
+        "Your Steam account is not deleted or modified. Deleted LibTaste data cannot be restored.",
+      confirmationLabel: "Type DELETE to confirm",
+      confirmAction: "Permanently delete account",
+      pending: "Deleting your LibTaste account…",
+    },
+    uncertain: {
+      authenticated:
+        "The connection ended after submission, but your account still appears available. LibTaste did not automatically repeat the deletion. You may explicitly retry.",
+      unknown:
+        "The connection ended after submission and LibTaste could not verify the result. The deletion was not automatically repeated. Restore connectivity before explicitly retrying.",
+    },
+    messages: {
+      loggedOutCurrent: "You have been logged out on this device.",
+      loggedOutAll: "You have been logged out on every device.",
+      deleted:
+        "Your LibTaste account and user-specific data were deleted permanently.",
+      deletionNotConfirmed:
+        "Your session ended before account deletion could be confirmed.",
+      deletionAppearsComplete:
+        "Account deletion appears complete because your LibTaste session is no longer valid.",
     },
   },
   config: {

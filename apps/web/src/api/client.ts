@@ -6,6 +6,7 @@ type TokenResponse = components["schemas"]["TokenResponse"];
 type TokenRequest = components["schemas"]["TokenRequest"];
 
 export type SessionEvent = "authenticated" | "signed-out";
+export type SessionRecovery = "authenticated" | "signed-out" | "unknown";
 
 export interface SessionManagerOptions {
   fetcher?: typeof fetch;
@@ -59,6 +60,36 @@ export class SessionManager {
     return Boolean(this.accessToken) && this.expiresAt - 30_000 > this.now();
   }
 
+  private async requestRefreshToken(): Promise<string> {
+    const csrf = readCookie("libtaste_csrf");
+    if (!csrf)
+      throw new ApiProblem(
+        401,
+        "Sign-in required",
+        "No browser session is available.",
+      );
+
+    const body: TokenRequest = {
+      grant_type: "refresh_token",
+      client_id: this.config.webClientId,
+    };
+    const response = await this.fetcher(
+      `${this.config.apiBaseUrl}/auth/token`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-CSRF-Token": decodeURIComponent(csrf),
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    if (!response.ok) throw await toApiProblem(response);
+    return this.retainToken((await response.json()) as TokenResponse);
+  }
+
   clear(): void {
     this.accessToken = undefined;
     this.expiresAt = 0;
@@ -92,35 +123,7 @@ export class SessionManager {
     if (this.hasCurrentToken()) return this.accessToken!;
     if (this.refreshPromise) return this.refreshPromise;
 
-    this.refreshPromise = (async () => {
-      const csrf = readCookie("libtaste_csrf");
-      if (!csrf)
-        throw new ApiProblem(
-          401,
-          "Sign-in required",
-          "No browser session is available.",
-        );
-
-      const body: TokenRequest = {
-        grant_type: "refresh_token",
-        client_id: this.config.webClientId,
-      };
-      const response = await this.fetcher(
-        `${this.config.apiBaseUrl}/auth/token`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            "X-CSRF-Token": decodeURIComponent(csrf),
-          },
-          body: JSON.stringify(body),
-        },
-      );
-      if (!response.ok) throw await toApiProblem(response);
-      return this.retainToken((await response.json()) as TokenResponse);
-    })()
+    this.refreshPromise = this.requestRefreshToken()
       .catch((error: unknown) => {
         this.clear();
         throw error;
@@ -130,6 +133,21 @@ export class SessionManager {
       });
 
     return this.refreshPromise;
+  }
+
+  async recoverSession(): Promise<SessionRecovery> {
+    this.accessToken = undefined;
+    this.expiresAt = 0;
+    try {
+      await this.requestRefreshToken();
+      return "authenticated";
+    } catch (error) {
+      if (error instanceof ApiProblem && error.status === 401) {
+        this.clear();
+        return "signed-out";
+      }
+      return "unknown";
+    }
   }
 
   async publicRequest(path: string, init: RequestInit = {}): Promise<Response> {
@@ -166,6 +184,32 @@ export class SessionManager {
       token = await this.refresh();
       response = await send(token);
     }
+    if (response.status === 401) this.clear();
+    if (!response.ok) throw await toApiProblem(response);
+    return response;
+  }
+
+  async requestOnce(path: string, init: RequestInit = {}): Promise<Response> {
+    const token = await this.refresh();
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    headers.set("Accept", headers.get("Accept") ?? "application/json");
+    const method = (init.method ?? "GET").toUpperCase();
+    if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+      const csrf = readCookie("libtaste_csrf");
+      if (!csrf)
+        throw new ApiProblem(
+          401,
+          "Sign-in required",
+          "No browser session is available.",
+        );
+      headers.set("X-CSRF-Token", decodeURIComponent(csrf));
+    }
+    const response = await this.fetcher(`${this.config.apiBaseUrl}${path}`, {
+      ...init,
+      headers,
+      credentials: "include",
+    });
     if (response.status === 401) this.clear();
     if (!response.ok) throw await toApiProblem(response);
     return response;

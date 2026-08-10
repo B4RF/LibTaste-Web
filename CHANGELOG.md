@@ -18,3 +18,5 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
   allocation recovery, responsive artwork cards, and focus-safe keyboard shortcuts.
 - Added public global and protected personal game leaderboards with responsive semantic tables, historical-game views,
   opaque cursor pagination, stable retry behavior, and distinct score and evidence explanations.
+- Added protected account/session settings for current and all-device logout, safeguarded permanent account deletion,
+  uncertain-result recovery, and centralized user-state cleanup that retains public leaderboard data.

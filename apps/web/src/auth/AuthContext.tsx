@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { SessionManager, type SessionEvent } from "../api/client";
+import { clearAuthTransaction } from "./pkce";
 
 export type AuthStatus =
   "unknown" | "checking" | "authenticated" | "signed-out";
@@ -17,6 +18,7 @@ interface AuthValue {
   status: AuthStatus;
   session: SessionManager;
   restore: () => Promise<boolean>;
+  clearSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -31,17 +33,23 @@ export function AuthProvider({
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<AuthStatus>("unknown");
 
+  const clearProtectedState = useCallback(async () => {
+    const protectedQuery = (query: { meta?: Record<string, unknown> }) =>
+      query.meta?.scope !== "public";
+    clearAuthTransaction();
+    await queryClient.cancelQueries({ predicate: protectedQuery });
+    queryClient.removeQueries({ predicate: protectedQuery });
+  }, [queryClient]);
+
   useEffect(
     () =>
       session.subscribe((event: SessionEvent) => {
         setStatus(event === "authenticated" ? "authenticated" : "signed-out");
         if (event === "signed-out") {
-          queryClient.removeQueries({
-            predicate: (query) => query.meta?.scope !== "public",
-          });
+          void clearProtectedState();
         }
       }),
-    [queryClient, session],
+    [clearProtectedState, session],
   );
 
   const restore = useCallback(async () => {
@@ -54,9 +62,14 @@ export function AuthProvider({
     }
   }, [session]);
 
+  const clearSession = useCallback(async () => {
+    session.clear();
+    await clearProtectedState();
+  }, [clearProtectedState, session]);
+
   const value = useMemo(
-    () => ({ status, session, restore }),
-    [restore, session, status],
+    () => ({ status, session, restore, clearSession }),
+    [clearSession, restore, session, status],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
