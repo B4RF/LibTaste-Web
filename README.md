@@ -1,6 +1,7 @@
 # LibTaste Web
 
-The browser client for LibTaste, where Steam players build personal game rankings through pairwise comparisons.
+The browser client for LibTaste, where Steam players build personal game rankings through accessible, server-selected
+pairwise comparisons.
 
 ## Requirements
 

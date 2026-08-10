@@ -7,12 +7,14 @@ export class ApiProblem extends Error {
   readonly title: string;
   readonly detail: string;
   readonly requestId?: string;
+  readonly type?: string;
 
   constructor(
     status: number,
     title: string,
     detail: string,
     requestId?: string,
+    type?: string,
   ) {
     super(detail);
     this.name = "ApiProblem";
@@ -20,6 +22,7 @@ export class ApiProblem extends Error {
     this.title = title;
     this.detail = detail;
     this.requestId = requestId;
+    this.type = type;
   }
 }
 
@@ -44,5 +47,6 @@ export async function toApiProblem(response: Response): Promise<ApiProblem> {
     typeof body.requestId === "string"
       ? body.requestId
       : (response.headers.get("X-Request-ID") ?? undefined);
-  return new ApiProblem(response.status, title, detail, requestId);
+  const type = typeof body.type === "string" ? body.type : undefined;
+  return new ApiProblem(response.status, title, detail, requestId, type);
 }

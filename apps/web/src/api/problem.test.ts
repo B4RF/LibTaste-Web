@@ -6,6 +6,7 @@ describe("Problem Details", () => {
     const problem = await toApiProblem(
       new Response(
         JSON.stringify({
+          type: "https://api.example.test/problems/rate-limited",
           title: "Try later",
           detail: "Please retry.",
           requestId: "req-7",
@@ -22,6 +23,7 @@ describe("Problem Details", () => {
       title: "Try later",
       detail: "Please retry.",
       requestId: "req-7",
+      type: "https://api.example.test/problems/rate-limited",
     });
     expect(JSON.stringify(problem)).not.toContain("secret");
   });

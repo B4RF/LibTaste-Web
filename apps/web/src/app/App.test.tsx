@@ -77,62 +77,89 @@ describe("application routes", () => {
     document.cookie = "libtaste_csrf=test; path=/";
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
-      return new Response(
-        JSON.stringify(
-          url.endsWith("/auth/token")
-            ? {
-                access_token: "access",
-                token_type: "Bearer",
-                expires_in: 900,
-              }
-            : {
-                steamId64: "76561198000000000",
-                displayName: "Test Pilot",
-                libraryState: "AVAILABLE",
-                synchronization: null,
+      const body = url.endsWith("/auth/token")
+        ? {
+            access_token: "access",
+            token_type: "Bearer",
+            expires_in: 900,
+          }
+        : url.endsWith("/comparisons/next")
+          ? {
+              comparisonId: "11111111-1111-4111-8111-111111111111",
+              left: {
+                appId: 400,
+                name: "Portal",
+                artworkUrl: "https://cdn.example.test/portal.jpg",
               },
-        ),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+              right: {
+                appId: 620,
+                name: "Portal 2",
+                artworkUrl: "https://cdn.example.test/portal-2.jpg",
+              },
+              createdAt: "2026-08-10T08:00:00Z",
+              expiresAt: "2026-08-11T08:00:00Z",
+            }
+          : {
+              steamId64: "76561198000000000",
+              displayName: "Test Pilot",
+              libraryState: "AVAILABLE",
+              synchronization: null,
+            };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     });
     renderRoute("/compare", new SessionManager(config, { fetcher }));
     expect(
       await screen.findByRole("heading", { name: "Compare games" }),
     ).toBeVisible();
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
   it("keeps an active synchronization visible across protected navigation", async () => {
     document.cookie = "libtaste_csrf=test; path=/";
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
-      return new Response(
-        JSON.stringify(
-          url.endsWith("/auth/token")
-            ? {
-                access_token: "access",
-                token_type: "Bearer",
-                expires_in: 900,
-              }
-            : {
-                steamId64: "76561198000000000",
-                displayName: "Test Pilot",
-                libraryState: "AVAILABLE",
-                synchronization: {
-                  jobId: "11111111-1111-4111-8111-111111111111",
-                  trigger: "LOGIN",
-                  status: "PENDING",
-                  attemptCount: 0,
-                  requestedAt: "2026-08-10T08:00:00Z",
-                  runAfter: "2026-08-10T08:00:00Z",
-                },
+      const body = url.endsWith("/auth/token")
+        ? {
+            access_token: "access",
+            token_type: "Bearer",
+            expires_in: 900,
+          }
+        : url.endsWith("/comparisons/next")
+          ? {
+              comparisonId: "11111111-1111-4111-8111-111111111111",
+              left: {
+                appId: 400,
+                name: "Portal",
+                artworkUrl: "https://cdn.example.test/portal.jpg",
               },
-        ),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+              right: {
+                appId: 620,
+                name: "Portal 2",
+                artworkUrl: "https://cdn.example.test/portal-2.jpg",
+              },
+              createdAt: "2026-08-10T08:00:00Z",
+              expiresAt: "2026-08-11T08:00:00Z",
+            }
+          : {
+              steamId64: "76561198000000000",
+              displayName: "Test Pilot",
+              libraryState: "AVAILABLE",
+              synchronization: {
+                jobId: "11111111-1111-4111-8111-111111111111",
+                trigger: "LOGIN",
+                status: "PENDING",
+                attemptCount: 0,
+                requestedAt: "2026-08-10T08:00:00Z",
+                runAfter: "2026-08-10T08:00:00Z",
+              },
+            };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     });
     renderRoute("/compare", new SessionManager(config, { fetcher }));
     expect(await screen.findByText("Synchronization pending")).toBeVisible();

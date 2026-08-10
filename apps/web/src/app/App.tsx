@@ -7,6 +7,7 @@ import { CallbackPage } from "../auth/CallbackPage";
 import { ProtectedRoute } from "../auth/ProtectedRoute";
 import type { RuntimeConfig } from "../config";
 import { copy } from "../content/copy";
+import { ComparePage } from "../features/comparisons/ComparePage";
 import { LibraryPage } from "../features/library/LibraryPage";
 import { ProfileSyncStatus } from "../features/library/ProfileSyncStatus";
 import styles from "../styles/App.module.css";
@@ -129,7 +130,9 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
             path={page.path}
             element={
               <ProtectedRoute config={config}>
-                {page.path === "/library" ? (
+                {page.path === "/compare" ? (
+                  <ComparePage />
+                ) : page.path === "/library" ? (
                   <LibraryPage />
                 ) : (
                   <ProductPlaceholder title={page.title} />

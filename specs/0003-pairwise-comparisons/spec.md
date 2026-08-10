@@ -1,9 +1,9 @@
 # SPEC-0003: Pairwise game comparisons
 
-Status: Draft  
+Status: Verified  
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-09  
+Last updated: 2026-08-10  
 Supersedes: None  
 Superseded by: None
 
@@ -156,31 +156,34 @@ None.
 
 | ID | Verification type | Test or evidence | Result |
 |---|---|---|---|
-| AC-001 | Browser test | Pending | Pending |
-| AC-002 | Browser accessibility test | Pending | Pending |
-| AC-003 | Browser test | Pending | Pending |
-| AC-004 | Browser test | Pending | Pending |
-| AC-005 | Integration test | Pending | Pending |
-| AC-006 | Browser test | Pending | Pending |
-| AC-007 | Browser test | Pending | Pending |
-| AC-008 | Browser test | Pending | Pending |
-| NFR-001 | Automated accessibility and viewport tests | Pending | Pending |
-| NFR-002 | Visual/component test | Pending | Pending |
-| NFR-003 | Request-boundary test | Pending | Pending |
-| NFR-004 | Browser suite review | Pending | Pending |
+| AC-001 | Browser test | `apps/web/e2e/comparisons.spec.ts` — every-outcome rapid-lock journey; `ComparePage.test.tsx` rapid activation test | Passed 2026-08-10 |
+| AC-002 | Browser accessibility test | `comparisons.spec.ts` right-keyboard outcome; `ComparePage.test.tsx` live-region assertion | Passed 2026-08-10 |
+| AC-003 | Browser test | `comparisons.spec.ts` draw step; `ComparePage.test.tsx` Draw case | Passed 2026-08-10 |
+| AC-004 | Browser test | `comparisons.spec.ts` skip step and no-rating announcement; `ComparePage.test.tsx` Skip case | Passed 2026-08-10 |
+| AC-005 | Integration test | `comparisons.spec.ts` identical uncertain retry; `ComparePage.test.tsx` exact path/body retry assertion | Passed 2026-08-10 |
+| AC-006 | Browser test | `comparisons.spec.ts` expired-pair recovery journey and matching component test | Passed 2026-08-10 |
+| AC-007 | Browser test | `comparisons.spec.ts` actionable allocation causes; component coverage for synchronization, eligibility, rate limit, and no pair | Passed 2026-08-10 |
+| AC-008 | Browser test | `comparisons.spec.ts` focus-safe shortcut journey and matching component test | Passed 2026-08-10 |
+| NFR-001 | Automated accessibility and viewport tests | `ComparePage.test.tsx` axe audit; `comparisons.spec.ts` 360px overflow and 44px target assertions across five browser projects | Passed 2026-08-10 |
+| NFR-002 | Visual/component test | `ComparePage.test.tsx` artwork failure fallback; `Artwork.test.tsx` neutral fallback and aspect-ratio coverage | Passed 2026-08-10 |
+| NFR-003 | Request-boundary test | `ComparePage.test.tsx` server comparison ID, orientation-derived outcome, and request-body assertions | Passed 2026-08-10 |
+| NFR-004 | Browser suite review | `comparisons.spec.ts`: 25 comparison journeys passed across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | Passed 2026-08-10 |
 
 ## Verification commands
 
 | Command | Result | Date |
 |---|---|---|
-| Pending | Pending | — |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 58 unit/component tests, coverage gates, OpenAPI check, and build | 2026-08-10 |
+| `npm.cmd run e2e -- --workers=1` from `apps/web` | Passed: 55 tests across all five browser projects | 2026-08-10 |
+| `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
+| Production container build and `apps/web/scripts/verify-container.mjs` | Passed: health, SPA fallback, runtime config, compression, and security headers | 2026-08-10 |
 
 ## Completion checklist
 
-- [ ] The specification was approved before implementation started.
-- [ ] Tests were derived from every acceptance criterion.
-- [ ] The implementation satisfies the requirements and non-goals.
-- [ ] Applicable contract, web and spec checks pass.
-- [ ] Required README, changelog, and ADR updates are complete.
-- [ ] The verification matrix contains no pending entries.
-- [ ] Status is `Verified` only after every item above is complete.
+- [x] The specification was approved before implementation started.
+- [x] Tests were derived from every acceptance criterion.
+- [x] The implementation satisfies the requirements and non-goals.
+- [x] Applicable contract, web and spec checks pass.
+- [x] Required README, changelog, and ADR updates are complete.
+- [x] The verification matrix contains no pending entries.
+- [x] Status is `Verified` only after every item above is complete.

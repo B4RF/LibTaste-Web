@@ -14,3 +14,5 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 - Added a runtime-configured Nginx production image with SPA fallback, compression, security headers, and health checks.
 - Added authenticated Steam profile status, durable library synchronization, cursor-paginated library browsing, and
   server-confirmed game eligibility controls.
+- Added accessible pairwise comparisons with immediate left/right/draw/skip outcomes, idempotent retry, expiry and
+  allocation recovery, responsive artwork cards, and focus-safe keyboard shortcuts.

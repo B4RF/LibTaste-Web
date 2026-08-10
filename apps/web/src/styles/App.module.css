@@ -427,6 +427,152 @@
   border-left: 3px solid var(--color-danger);
 }
 
+.comparePage {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.compareHeader {
+  max-width: 52rem;
+}
+
+.compareHeader h1 {
+  margin-bottom: var(--space-4);
+}
+
+.irreversible {
+  padding: var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-surface);
+  font-weight: 700;
+}
+
+.comparisonMeta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-4);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.comparisonMeta p {
+  margin: 0;
+}
+
+.comparisonMeta code {
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.comparisonCard {
+  overflow: hidden;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.comparisonCard:not(:disabled):hover {
+  border-color: var(--color-accent-strong);
+  box-shadow: var(--shadow-raised);
+  transform: translateY(-0.15rem);
+}
+
+.comparisonCard:disabled,
+.comparisonActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.comparisonCardBody {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 4.5rem;
+  padding: var(--space-4);
+}
+
+.comparisonCardBody strong {
+  font-size: clamp(1.15rem, 2.5vw, 1.6rem);
+}
+
+.comparisonCardBody span,
+.shortcutHelp,
+.comparisonStatus {
+  color: var(--color-muted);
+}
+
+.versus {
+  margin: 0;
+  color: var(--color-muted);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.comparisonActions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.comparisonActions button {
+  min-width: 8rem;
+}
+
+kbd {
+  display: inline-grid;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.comparisonStatus {
+  min-height: 1.6rem;
+  margin: 0;
+  text-align: center;
+}
+
+.shortcutHelp,
+.comparisonRecovery {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.shortcutHelp h2 {
+  font-size: 1rem;
+}
+
+.comparisonRecovery {
+  max-width: 48rem;
+}
+
+.comparisonRecovery > .secondaryButton {
+  margin-bottom: var(--space-6);
+}
+
 @media (max-width: 800px) {
   .header {
     align-items: flex-start;
@@ -457,6 +603,14 @@
     align-items: stretch;
     flex-direction: column;
   }
+
+  .comparisonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .versus {
+    text-align: center;
+  }
 }
 
 @media (max-width: 520px) {
@@ -486,6 +640,16 @@
   }
 
   .actions > * {
+    width: 100%;
+  }
+
+  .comparisonCardBody,
+  .comparisonActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .comparisonActions button {
     width: 100%;
   }
 }

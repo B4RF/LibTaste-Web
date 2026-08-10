@@ -1,7 +1,7 @@
 # LibTaste web application
 
 React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, Steam
-profile and library management, and protected product routes.
+profile and library management, pairwise game comparisons, and protected product routes.
 
 ## Development
 
@@ -58,6 +58,16 @@ with bounded backoff, pause in hidden documents, and stop after success, failure
 - renders artwork lazily and uses off-viewport containment for pages of up to 100 games; and
 - changes Default, Include, or Exclude eligibility without replacing the displayed server-confirmed state until the API
   succeeds.
+
+## Pairwise comparisons
+
+The protected Compare route restores the exact server-issued left/right pair and submits `LEFT_WIN`, `RIGHT_WIN`,
+`DRAW`, or `SKIP` immediately. Outcome controls lock synchronously, uncertain requests can only retry the identical
+comparison ID and outcome, and successful submissions briefly announce the result before requesting the next pair.
+
+Keyboard shortcuts are L for left, R for right, D for draw, and S for skip. They remain inactive when another
+interactive or text-entry control has focus. Expired or conflicting pairs are discarded, and allocation failures expose
+distinct synchronization, eligibility, rate-limit, and no-pair recovery states using stable Problem Details types.
 
 ## Verification
 

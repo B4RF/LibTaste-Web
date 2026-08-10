@@ -58,6 +58,74 @@ export const copy = {
     invalidDetail:
       "The sign-in link is missing, expired, or has already been used. Start a fresh sign-in to try again.",
   },
+  compare: {
+    eyebrow: "Pairwise ranking",
+    summary:
+      "Choose the game you prefer, record a draw, or skip this server-selected pair.",
+    irreversible:
+      "Every submitted outcome is final and cannot be undone. Retrying sends the identical choice for the same comparison.",
+    loading: "Finding your current comparison…",
+    retry: (outcome: string) => `Retry ${outcome}`,
+    status: {
+      ready: "Choose an outcome. All four actions submit immediately.",
+      submitting: (outcome: string) => `Submitting ${outcome}…`,
+      uncertain: (outcome: string) =>
+        `The result is uncertain. Only the identical ${outcome} can be retried.`,
+      recorded: (outcome: string) =>
+        `Recorded ${outcome}. Loading the next comparison.`,
+      skipped:
+        "Skipped. No rating change is claimed. Loading the next comparison.",
+    },
+    expiry: {
+      open: (time: string) => `Submission window is open until ${time}.`,
+      soon: (time: string) =>
+        `Submission window expires soon at ${time}. The server remains authoritative.`,
+      passed: (time: string) =>
+        `The displayed submission window passed at ${time}. The server will confirm whether an outcome is still accepted.`,
+    },
+    shortcuts: {
+      title: "Keyboard shortcuts",
+      detail:
+        "Press L for the left game, R for the right game, D for draw, or S to skip. Shortcuts pause while another control or text field has focus.",
+    },
+    stale: {
+      eyebrow: "Comparison changed",
+      title: "This pair is no longer interactive",
+      detail:
+        "It expired, was completed elsewhere, or is no longer the active server comparison.",
+      action: "Get current comparison",
+    },
+    recovery: {
+      synchronization: {
+        eyebrow: "Library synchronization",
+        title: "Your library is not ready for comparisons",
+        detail:
+          "Open Library to review synchronization or Steam availability, then try again.",
+      },
+      eligibility: {
+        eyebrow: "Eligible population",
+        title: "More eligible games are needed",
+        detail:
+          "Open Library to include enough currently owned games for a pair.",
+      },
+      "rate-limit": {
+        eyebrow: "Please wait",
+        title: "Comparisons are temporarily rate limited",
+        detail: "Wait for the API cooldown before requesting another pair.",
+      },
+      "no-pair": {
+        eyebrow: "No pair available",
+        title: "There is no comparison to show right now",
+        detail:
+          "Your library may be eligible even though the ranking model cannot currently allocate a pair.",
+      },
+      generic: {
+        eyebrow: "Comparison unavailable",
+        title: "A comparison could not be loaded",
+        detail: "Try retrieving the current server state again.",
+      },
+    },
+  },
   library: {
     eyebrow: "Steam collection",
     summary:
