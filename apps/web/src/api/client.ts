@@ -34,7 +34,7 @@ export class SessionManager {
     private readonly config: RuntimeConfig,
     options: SessionManagerOptions = {},
   ) {
-    this.fetcher = options.fetcher ?? fetch;
+    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
     this.now = options.now ?? Date.now;
     if (options.onSessionEvent) this.listeners.add(options.onSessionEvent);
   }

@@ -7,6 +7,8 @@ import { CallbackPage } from "../auth/CallbackPage";
 import { ProtectedRoute } from "../auth/ProtectedRoute";
 import type { RuntimeConfig } from "../config";
 import { copy } from "../content/copy";
+import { LibraryPage } from "../features/library/LibraryPage";
+import { ProfileSyncStatus } from "../features/library/ProfileSyncStatus";
 import styles from "../styles/App.module.css";
 import { LandingPage } from "./LandingPage";
 
@@ -67,6 +69,7 @@ function Shell({
           <span className={styles.environment}>{config.environmentLabel}</span>
         ) : null}
       </header>
+      <ProfileSyncStatus />
       <main id="main-content" className={styles.main} tabIndex={-1}>
         {children}
       </main>
@@ -126,7 +129,11 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
             path={page.path}
             element={
               <ProtectedRoute config={config}>
-                <ProductPlaceholder title={page.title} />
+                {page.path === "/library" ? (
+                  <LibraryPage />
+                ) : (
+                  <ProductPlaceholder title={page.title} />
+                )}
               </ProtectedRoute>
             }
           />

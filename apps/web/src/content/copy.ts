@@ -58,6 +58,58 @@ export const copy = {
     invalidDetail:
       "The sign-in link is missing, expired, or has already been used. Start a fresh sign-in to try again.",
   },
+  library: {
+    eyebrow: "Steam collection",
+    summary:
+      "Browse imported games, review ownership and playtime, and choose which currently owned games can enter comparisons.",
+    profileStatus: "Steam profile and library synchronization",
+    steamPlayer: "Steam player",
+    openSteamProfile: "Open Steam profile",
+    synchronize: "Synchronize library",
+    synchronizing: "Requesting synchronizationâ€¦",
+    libraryState: "Library state",
+    lastSync: "Last library synchronization",
+    notYet: "Not synchronized yet",
+    cooldown:
+      "Steam library synchronization can be requested once per hour. Your imported library remains available while you wait.",
+    loadingProfile: "Loading Steam profileâ€¦",
+    loading: "Loading Steam libraryâ€¦",
+    loadingMore: "Loading moreâ€¦",
+    loadMore: "Load more",
+    end: "End of library",
+    empty: "No imported Steam games are available.",
+    notSynchronized:
+      "Your Steam library has not been synchronized yet. Request synchronization to import it.",
+    privateTitle: "Steam game details are private or unavailable",
+    privateDetail:
+      "You remain signed in. Make Steam game details public, then synchronize again. LibTaste cannot change Steam privacy settings for you.",
+    privacyGuidance: "Open Steam privacy guidance",
+    playtime: "Recorded playtime",
+    neverPlayed: "No recorded playtime",
+    ownership: "Ownership",
+    currentOwnership: "Currently owned",
+    historicalOwnership: "Historical ownership",
+    eligibility: {
+      label: (name: string) => `Eligibility behavior for ${name}`,
+      default: "Default",
+      include: "Include",
+      exclude: "Exclude",
+      defaultExplanation:
+        "Default means currently owned games with recorded playtime are eligible unless explicitly overridden.",
+      eligible: "Eligible for comparisons",
+      notEligible: "Not eligible for comparisons",
+      retry: (behavior: string, name: string) =>
+        `Retry ${behavior === "exclude" ? "excluding" : behavior === "include" ? "including" : "default behavior for"} ${name}`,
+    },
+    sync: {
+      pending: "Synchronization pending",
+      running: "Synchronization running",
+      retryWait: "Synchronization waiting to retry",
+      succeeded: "Synchronization succeeded",
+      failed: "Synchronization failed",
+      unavailable: "Steam library unavailable",
+    },
+  },
   config: {
     title: "LibTaste is not configured",
     summary:

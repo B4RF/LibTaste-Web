@@ -1,5 +1,6 @@
 import { axe } from "jest-axe";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { SessionManager } from "../api/client";
@@ -74,24 +75,72 @@ describe("application routes", () => {
 
   it("renders authenticated protected content after session restoration", async () => {
     document.cookie = "libtaste_csrf=test; path=/";
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          access_token: "access",
-          token_type: "Bearer",
-          expires_in: 900,
-        }),
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      return new Response(
+        JSON.stringify(
+          url.endsWith("/auth/token")
+            ? {
+                access_token: "access",
+                token_type: "Bearer",
+                expires_in: 900,
+              }
+            : {
+                steamId64: "76561198000000000",
+                displayName: "Test Pilot",
+                libraryState: "AVAILABLE",
+                synchronization: null,
+              },
+        ),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
         },
-      ),
-    );
+      );
+    });
     renderRoute("/compare", new SessionManager(config, { fetcher }));
     expect(
       await screen.findByRole("heading", { name: "Compare games" }),
     ).toBeVisible();
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps an active synchronization visible across protected navigation", async () => {
+    document.cookie = "libtaste_csrf=test; path=/";
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      return new Response(
+        JSON.stringify(
+          url.endsWith("/auth/token")
+            ? {
+                access_token: "access",
+                token_type: "Bearer",
+                expires_in: 900,
+              }
+            : {
+                steamId64: "76561198000000000",
+                displayName: "Test Pilot",
+                libraryState: "AVAILABLE",
+                synchronization: {
+                  jobId: "11111111-1111-4111-8111-111111111111",
+                  trigger: "LOGIN",
+                  status: "PENDING",
+                  attemptCount: 0,
+                  requestedAt: "2026-08-10T08:00:00Z",
+                  runAfter: "2026-08-10T08:00:00Z",
+                },
+              },
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+    renderRoute("/compare", new SessionManager(config, { fetcher }));
+    expect(await screen.findByText("Synchronization pending")).toBeVisible();
+    await userEvent.click(screen.getByRole("link", { name: "Settings" }));
+    expect(
+      await screen.findByRole("heading", { name: "Settings" }),
+    ).toBeVisible();
+    expect(screen.getByText("Synchronization pending")).toBeVisible();
   });
 
   it("provides a not-found recovery path", () => {

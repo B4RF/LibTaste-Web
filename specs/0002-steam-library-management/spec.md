@@ -1,9 +1,9 @@
 # SPEC-0002: Steam profile and library management
 
-Status: Draft  
+Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-09  
+Last updated: 2026-08-10
 Supersedes: None  
 Superseded by: None
 
@@ -154,30 +154,34 @@ None.
 
 | ID | Verification type | Test or evidence | Result |
 |---|---|---|---|
-| AC-001 | Component/integration test | Pending | Pending |
-| AC-002 | Browser test | Pending | Pending |
-| AC-003 | Integration test | Pending | Pending |
-| AC-004 | Component test | Pending | Pending |
-| AC-005 | Browser test | Pending | Pending |
-| AC-006 | Browser test | Pending | Pending |
-| AC-007 | Browser test | Pending | Pending |
-| AC-008 | Component test | Pending | Pending |
-| NFR-002 | Timer and visibility test | Pending | Pending |
-| NFR-003 | Performance-oriented component test | Pending | Pending |
-| NFR-004 | Contract fixture review | Pending | Pending |
+| AC-001 | Component/integration test | `apps/web/src/app/App.test.tsx`, `apps/web/src/features/library/syncPolling.test.ts` | Passed 2026-08-10 |
+| AC-002 | Browser/component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
+| AC-003 | Integration test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
+| AC-004 | Component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
+| AC-005 | Browser test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-10 |
+| AC-006 | Browser test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-10 |
+| AC-007 | Browser/component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
+| AC-008 | Component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
+| NFR-002 | Timer and visibility test | `apps/web/src/features/library/syncPolling.test.ts` | Passed 2026-08-10 |
+| NFR-003 | Performance-oriented component test | `apps/web/src/features/library/LibraryPage.test.tsx` (100 contract-shaped lazy-rendered entries) | Passed 2026-08-10 |
+| NFR-004 | Contract fixture review | Typed fixtures in `apps/web/src/features/library/LibraryPage.test.tsx` and `apps/web/e2e/library.spec.ts` | Passed 2026-08-10 |
 
 ## Verification commands
 
 | Command | Result | Date |
 |---|---|---|
-| Pending | Pending | — |
+| `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
+| `npm run verify` | Passed (format, lint, typecheck, 44 tests, coverage, OpenAPI drift check, and production build) | 2026-08-10 |
+| `npm run test --workspace apps/web` | Passed (44 tests) | 2026-08-10 |
+| `npm run coverage --workspace apps/web` | Passed (89.69% statements, 82.06% branches, 90.16% functions, 91.89% lines) | 2026-08-10 |
+| `npx playwright test` | Passed (30 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari) | 2026-08-10 |
 
 ## Completion checklist
 
-- [ ] The specification was approved before implementation started.
-- [ ] Tests were derived from every acceptance criterion.
-- [ ] The implementation satisfies the requirements and non-goals.
-- [ ] Applicable contract, web and spec checks pass.
-- [ ] Required README, changelog, and ADR updates are complete.
-- [ ] The verification matrix contains no pending entries.
-- [ ] Status is `Verified` only after every item above is complete.
+- [x] The specification was approved before implementation started.
+- [x] Tests were derived from every acceptance criterion.
+- [x] The implementation satisfies the requirements and non-goals.
+- [x] Applicable contract, web and spec checks pass.
+- [x] Required README, changelog, and ADR updates are complete.
+- [x] The verification matrix contains no pending entries.
+- [x] Status is `Verified` only after every item above is complete.

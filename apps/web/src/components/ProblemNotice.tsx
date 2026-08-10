@@ -1,22 +1,22 @@
 import { ApiProblem } from "../api/problem";
+import { useId } from "react";
 import { copy } from "../content/copy";
 import styles from "../styles/App.module.css";
 
 export function ProblemNotice({
   error,
   onRetry,
+  retryLabel = copy.errors.retry,
 }: {
   error: unknown;
   onRetry?: () => void;
+  retryLabel?: string;
 }) {
+  const titleId = useId();
   const problem = error instanceof ApiProblem ? error : undefined;
   return (
-    <section
-      className={styles.problem}
-      role="alert"
-      aria-labelledby="problem-title"
-    >
-      <h2 id="problem-title">{problem?.title ?? copy.errors.fallbackTitle}</h2>
+    <section className={styles.problem} role="alert" aria-labelledby={titleId}>
+      <h2 id={titleId}>{problem?.title ?? copy.errors.fallbackTitle}</h2>
       <p>{problem?.detail ?? copy.errors.fallbackDetail}</p>
       {onRetry ? (
         <button
@@ -24,7 +24,7 @@ export function ProblemNotice({
           type="button"
           onClick={onRetry}
         >
-          {copy.errors.retry}
+          {retryLabel}
         </button>
       ) : null}
       {problem?.requestId ? (

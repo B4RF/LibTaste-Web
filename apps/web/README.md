@@ -1,7 +1,7 @@
 # LibTaste web application
 
-React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, and the
-protected feature routes owned by later specifications.
+React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, Steam
+profile and library management, and protected product routes.
 
 ## Development
 
@@ -46,6 +46,18 @@ npm run openapi:check
 ```
 
 The check fails with the regeneration command if the committed representation is stale.
+
+## Steam profile and library
+
+Authenticated routes share a persistent Steam profile and library-synchronization summary. Active durable jobs poll
+with bounded backoff, pause in hidden documents, and stop after success, failure, or sign-out. The Library route:
+
+- explains private or unavailable Steam game details and links to official Steam privacy guidance;
+- supports one-at-a-time manual synchronization with safe cooldown and Problem Details feedback;
+- appends opaque cursor pages in server order while retaining successful content after later failures;
+- renders artwork lazily and uses off-viewport containment for pages of up to 100 games; and
+- changes Default, Include, or Exclude eligibility without replacing the displayed server-confirmed state until the API
+  succeeds.
 
 ## Verification
 

@@ -12,3 +12,5 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 - Added Steam authorization-code PKCE, in-memory access-token rotation, safe Problem Details, and signed-out recovery.
 - Added generated OpenAPI types with drift verification, cross-browser tests, coverage gates, and CI verification.
 - Added a runtime-configured Nginx production image with SPA fallback, compression, security headers, and health checks.
+- Added authenticated Steam profile status, durable library synchronization, cursor-paginated library browsing, and
+  server-confirmed game eligibility controls.

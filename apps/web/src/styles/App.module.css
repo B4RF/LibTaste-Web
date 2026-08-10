@@ -252,7 +252,9 @@
 }
 
 .artwork,
-.artworkFallback {
+.artworkFallback,
+.avatar,
+.avatarFallback {
   display: grid;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -265,6 +267,164 @@
 .artworkFallback {
   color: var(--color-muted);
   font-size: 2rem;
+}
+
+.avatar,
+.avatarFallback {
+  width: 3rem;
+  aspect-ratio: 1;
+  flex: 0 0 3rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  color: var(--color-muted);
+}
+
+.profileStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: min(100% - 2rem, var(--content-width));
+  margin-inline: auto;
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.profileIdentity,
+.profileStatus > div,
+.profileIdentity > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.profileIdentity > div {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0;
+}
+
+.profileIdentity strong {
+  color: var(--color-text);
+}
+
+.statusBadge {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.libraryPage {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.libraryHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.libraryHeader h1 {
+  margin-bottom: var(--space-4);
+}
+
+.libraryHeader > div {
+  max-width: 48rem;
+}
+
+.syncDetails,
+.libraryFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.syncDetails div,
+.libraryFacts div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.syncDetails dt,
+.libraryFacts dt {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.syncDetails dd,
+.libraryFacts dd {
+  margin: 0;
+}
+
+.privateGuidance,
+.emptyState {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.libraryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
+  gap: var(--space-6);
+}
+
+.libraryCard {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 32rem;
+}
+
+.libraryCardBody {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.libraryCardBody h2,
+.libraryCardBody p {
+  margin: 0;
+}
+
+.eligibilityControl {
+  display: grid;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+
+.eligibilityControl select {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.eligibilityState,
+.endState {
+  color: var(--color-muted);
+}
+
+.inlineError {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-danger);
 }
 
 @media (max-width: 800px) {
@@ -292,9 +452,19 @@
   .hero {
     grid-template-columns: 1fr;
   }
+
+  .libraryHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 520px) {
+  .profileStatus,
+  .profileStatus > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .pairPreview {
     grid-template-columns: 1fr;
   }
