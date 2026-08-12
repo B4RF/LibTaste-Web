@@ -1,3 +1,7 @@
+function pluralCopy(count: number, singular: string) {
+  return `${count} ${singular}${count === 1 ? "" : "s"}`;
+}
+
 export const copy = {
   brand: "LibTaste",
   shell: {
@@ -8,6 +12,7 @@ export const copy = {
   },
   navigation: {
     compare: "Compare",
+    recommendations: "Recommendations",
     personalRanking: "My Ranking",
     library: "Library",
     settings: "Settings",
@@ -31,6 +36,7 @@ export const copy = {
   },
   routes: {
     compare: "Compare games",
+    recommendations: "Recommendations",
     personalRanking: "My ranking",
     library: "Steam library",
     settings: "Settings",
@@ -120,6 +126,69 @@ export const copy = {
         eyebrow: "Comparison unavailable",
         title: "A comparison could not be loaded",
         detail: "Try retrieving the current server state again.",
+      },
+    },
+  },
+  recommendations: {
+    eyebrow: "Personal discovery",
+    introduction:
+      "Suggestions use your ratings and anonymous community patterns. They include only games absent from your current and historical Steam library.",
+    loading: "Finding recommendations...",
+    compare: "Open Compare",
+    sources: {
+      item: "Similar games",
+      user: "Similar players",
+      blended: "Similar games and players",
+    },
+    predictedRank: (percentile: number) =>
+      `Predicted to rank above ${percentile}% of your rated games.`,
+    supportLabel: "Recommendation support",
+    playerSupport: (count: number) =>
+      `Supported by ${pluralCopy(count, "similar player")}`,
+    gameSupport: (count: number) =>
+      `Supported by ${pluralCopy(count, "rated game")}`,
+    becauseOf: "Because you rated",
+    similarity: (similarity: number) =>
+      `${Math.round(similarity * 100)}% similar`,
+    more: (count: number) => `and ${count} more`,
+    steamLink: "Open on Steam",
+    steamLinkLabel: (name: string) =>
+      `Open ${name} on Steam (opens in a new tab)`,
+    rateLimited:
+      "Recommendation requests are temporarily rate limited. Wait before trying again.",
+    empty: {
+      NOT_ENOUGH_PERSONAL_RATINGS: {
+        title: "Rank more games first",
+        detail:
+          "Recommendations need more ranked, non-excluded games from your library.",
+        compare: true,
+      },
+      NO_RATING_VARIATION: {
+        title: "Show more of your preferences",
+        detail:
+          "Your ratings need clearer differentiation before LibTaste can make useful suggestions. Keep comparing games to shape a more distinct ranking.",
+        compare: true,
+      },
+      NOT_ENOUGH_COMMUNITY_DATA: {
+        title: "Community evidence is still growing",
+        detail:
+          "There is not enough matching community evidence yet. Please return later.",
+        compare: false,
+      },
+      exhausted: {
+        title: "You have seen every eligible candidate",
+        detail:
+          "Every otherwise eligible community-rated candidate is already in your current or historical Steam library.",
+      },
+      unknown: {
+        title: "Recommendations are not available yet",
+        detail:
+          "LibTaste does not yet have enough usable evidence. Please return later.",
+        compare: false,
+      },
+      none: {
+        title: "No recommendations returned",
+        detail: "LibTaste has no recommendation results to show right now.",
       },
     },
   },

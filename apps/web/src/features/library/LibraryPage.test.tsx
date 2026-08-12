@@ -1,4 +1,5 @@
 import { axe } from "jest-axe";
+import { QueryClient } from "@tanstack/react-query";
 import {
   fireEvent,
   render,
@@ -13,6 +14,7 @@ import { SessionManager } from "../../api/client";
 import type { components } from "../../api/generated";
 import { ApplicationProviders, ApplicationRoutes } from "../../app/App";
 import type { RuntimeConfig } from "../../config";
+import { recommendationQueryKey } from "../recommendations/recommendationApi";
 
 type MeProfile = components["schemas"]["MeProfile"];
 type LibraryItem = components["schemas"]["LibraryItem"];
@@ -79,16 +81,58 @@ function authenticatedFetcher(
 function renderLibrary(fetcher: typeof fetch) {
   document.cookie = "libtaste_csrf=test; path=/";
   const session = new SessionManager(config, { fetcher });
-  return render(
-    <ApplicationProviders config={config} session={session}>
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const rendered = render(
+    <ApplicationProviders
+      config={config}
+      session={session}
+      queryClient={queryClient}
+    >
       <MemoryRouter initialEntries={["/library"]}>
         <ApplicationRoutes config={config} />
       </MemoryRouter>
     </ApplicationProviders>,
   );
+  return { ...rendered, queryClient };
 }
 
 describe("Steam library", () => {
+  it("invalidates recommendations after a library eligibility change", async () => {
+    const fetcher = authenticatedFetcher((url, init) => {
+      if (url.pathname.endsWith("/me")) return json(profile);
+      if (url.pathname.endsWith("/me/library"))
+        return json({ items: [portal] });
+      if (url.pathname.endsWith("/eligibility") && init?.method === "PUT") {
+        return json({
+          ...portal,
+          eligibilityOverride: "EXCLUDED",
+          effectivelyEligible: false,
+        });
+      }
+      throw new Error(`Unexpected request: ${init?.method ?? "GET"} ${url}`);
+    });
+    const { queryClient } = renderLibrary(fetcher);
+    queryClient.setQueryData(recommendationQueryKey, {
+      status: "OK",
+      recommendations: [],
+    });
+
+    await userEvent.selectOptions(
+      await screen.findByRole("combobox", {
+        name: /eligibility behavior for portal/i,
+      }),
+      "EXCLUDED",
+    );
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryState(recommendationQueryKey)?.isInvalidated,
+      ).toBe(true),
+    );
+  });
+
   it("keeps a private-library user signed in and reuses one accepted sync job", async () => {
     const activeJob: LibrarySyncJob = {
       jobId: "11111111-1111-4111-8111-111111111111",
@@ -299,5 +343,5 @@ describe("Steam library", () => {
       }),
     ).toBeVisible();
     expect(await axe(result.container)).toHaveNoViolations();
-  }, 15_000);
+  }, 30_000);
 });

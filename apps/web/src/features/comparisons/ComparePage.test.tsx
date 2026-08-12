@@ -14,6 +14,7 @@ import { SessionManager } from "../../api/client";
 import { ApiProblem } from "../../api/problem";
 import { AuthProvider } from "../../auth/AuthContext";
 import type { RuntimeConfig } from "../../config";
+import { recommendationQueryKey } from "../recommendations/recommendationApi";
 import { ComparePage, classifyAllocationProblem } from "./ComparePage";
 
 const config: RuntimeConfig = {
@@ -72,7 +73,7 @@ function renderCompare(fetcher: typeof fetch) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const rendered = render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider session={session}>
         <MemoryRouter>
@@ -81,6 +82,7 @@ function renderCompare(fetcher: typeof fetch) {
       </AuthProvider>
     </QueryClientProvider>,
   );
+  return { ...rendered, queryClient };
 }
 
 function result(outcome: "LEFT_WIN" | "RIGHT_WIN" | "DRAW" | "SKIP") {
@@ -97,6 +99,27 @@ afterEach(() => {
 });
 
 describe("ComparePage", () => {
+  it("invalidates cached recommendations after a completed comparison", async () => {
+    const fetcher = authenticatedFetcher((url) =>
+      url.pathname.endsWith("/comparisons/next")
+        ? json(comparison)
+        : json(result("DRAW")),
+    );
+    const { queryClient } = renderCompare(fetcher);
+    queryClient.setQueryData(recommendationQueryKey, {
+      status: "OK",
+      recommendations: [],
+    });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Draw" }));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryState(recommendationQueryKey)?.isInvalidated,
+      ).toBe(true),
+    );
+  });
+
   it("locks every outcome on rapid left activation and advances once", async () => {
     let allocationCount = 0;
     let resolveSubmission!: (response: Response) => void;

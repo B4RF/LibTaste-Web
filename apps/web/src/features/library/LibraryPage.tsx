@@ -11,6 +11,7 @@ import { Artwork } from "../../components/Artwork";
 import { ProblemNotice } from "../../components/ProblemNotice";
 import { copy } from "../../content/copy";
 import styles from "../../styles/App.module.css";
+import { recommendationQueryKey } from "../recommendations/recommendationApi";
 import {
   getLibraryPage,
   requestSync,
@@ -68,6 +69,7 @@ function LibraryEntry({ item }: { item: LibraryItem }) {
         libraryQueryKey,
         (current) => replaceItem(current, nextItem),
       );
+      void queryClient.invalidateQueries({ queryKey: recommendationQueryKey });
     },
     onError: (_error, behavior) => setFailedBehavior(behavior),
   });
@@ -172,6 +174,7 @@ export function LibraryPage() {
       queryClient.setQueryData<MeProfile>(profileQueryKey, (current) =>
         current ? { ...current, synchronization: job } : current,
       );
+      void queryClient.invalidateQueries({ queryKey: recommendationQueryKey });
     },
   });
 

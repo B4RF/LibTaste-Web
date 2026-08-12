@@ -300,6 +300,43 @@ paths:
           $ref: '#/components/responses/Problem'
         '401':
           $ref: '#/components/responses/Problem'
+  /me/recommendations:
+    get:
+      operationId: getMyGameRecommendations
+      summary: Calculate personalized recommendations for the authenticated user
+      description: >-
+        Calculates confidence-weighted collaborative recommendations on demand. The predicted percentile is the
+        candidate's estimated position within the current user's own normalized ranking; it is not confidence,
+        dislike, purchase likelihood, or a leaderboard score. No raw rating or other-user evidence is returned.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Recommendations or an explicit successful empty state calculated from current committed evidence.
+          headers:
+            Cache-Control:
+              description: Private client cache bound for every successful response.
+              schema:
+                type: string
+                const: private, max-age=60
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
   /leaderboards/global:
     get:
       operationId: getGlobalGameLeaderboard
@@ -747,6 +784,100 @@ components:
             $ref: '#/components/schemas/GlobalLeaderboardEntry'
         nextCursor:
           type: [string, 'null']
+    RecommendationSource:
+      type: string
+      enum: [ITEM, USER, BLENDED]
+      description: The qualifying collaborative model or models used for this candidate.
+    RecommendationBecauseOf:
+      type: object
+      additionalProperties: false
+      required:
+        - appId
+        - name
+        - artworkUrl
+        - adjustedSimilarity
+      properties:
+        appId:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+        artworkUrl:
+          type: string
+          format: uri
+        adjustedSimilarity:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+          description: Positive overlap-shrunken game similarity rounded to six decimal places.
+    RecommendationEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - appId
+        - name
+        - artworkUrl
+        - source
+        - predictedRankPercentile
+        - neighborSupportCount
+        - seedSupportCount
+      properties:
+        appId:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+        artworkUrl:
+          type: string
+          format: uri
+        source:
+          $ref: '#/components/schemas/RecommendationSource'
+        predictedRankPercentile:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: >-
+            Nearest whole-number percentage of the user's recommendation-usable normalized ratings strictly below
+            the candidate's unrounded predicted score; this is not confidence or purchase likelihood.
+        neighborSupportCount:
+          type: integer
+          minimum: 0
+        seedSupportCount:
+          type: integer
+          minimum: 0
+        becauseOf:
+          type: array
+          maxItems: 3
+          description: Present only for ITEM and BLENDED results, ordered by positive scoring contribution.
+          items:
+            $ref: '#/components/schemas/RecommendationBecauseOf'
+        becauseOfTotalCount:
+          type: integer
+          minimum: 1
+          description: Present only for ITEM and BLENDED results and includes seeds omitted from becauseOf.
+    RecommendationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - recommendations
+      properties:
+        status:
+          type: string
+          enum: [OK, INSUFFICIENT_DATA, NO_CANDIDATES]
+        reason:
+          type: string
+          enum: [NOT_ENOUGH_PERSONAL_RATINGS, NO_RATING_VARIATION, NOT_ENOUGH_COMMUNITY_DATA]
+          description: Present only when status is INSUFFICIENT_DATA.
+        recommendations:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/RecommendationEntry'
     Problem:
       type: object
       description: RFC 9457 Problem Details with request correlation.
