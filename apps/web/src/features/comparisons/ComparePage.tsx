@@ -17,7 +17,7 @@ import {
 } from "./comparisonApi";
 
 type SubmissionState =
-  | { kind: "allocating" }
+  | { kind: "allocating"; previous?: Comparison }
   | {
       kind: "submitting";
       comparison: Comparison;
@@ -92,12 +92,19 @@ export function classifyAllocationProblem(error: unknown): AllocationKind {
   return "generic";
 }
 
-function expiryCopy(expiresAt: string, now: number): string {
+function expiryState(
+  expiresAt: string,
+  now: number,
+): { text: string; urgent: boolean } {
   const remaining = new Date(expiresAt).getTime() - now;
   const formatted = new Date(expiresAt).toLocaleString();
-  if (remaining <= 0) return copy.compare.expiry.passed(formatted);
-  if (remaining <= 5 * 60_000) return copy.compare.expiry.soon(formatted);
-  return copy.compare.expiry.open(formatted);
+  if (remaining <= 0) {
+    return { text: copy.compare.expiry.passed(formatted), urgent: true };
+  }
+  if (remaining <= 5 * 60_000) {
+    return { text: copy.compare.expiry.soon(formatted), urgent: true };
+  }
+  return { text: copy.compare.expiry.open(formatted), urgent: false };
 }
 
 function ComparisonCard({
@@ -182,13 +189,13 @@ export function ComparePage() {
     meta: { scope: "user" },
   });
 
-  const requestCurrent = useCallback(() => {
+  const requestCurrent = useCallback((previous?: Comparison) => {
     if (advanceTimer.current !== undefined) {
       window.clearTimeout(advanceTimer.current);
       advanceTimer.current = undefined;
     }
     submissionLock.current = false;
-    setState({ kind: "allocating" });
+    setState({ kind: "allocating", previous });
     setAllocationAttempt((attempt) => attempt + 1);
   }, []);
 
@@ -219,7 +226,10 @@ export function ComparePage() {
           queryKey: recommendationQueryKey,
         });
         setState({ kind: "recorded", comparison, result });
-        advanceTimer.current = window.setTimeout(requestCurrent, 450);
+        advanceTimer.current = window.setTimeout(
+          () => requestCurrent(comparison),
+          450,
+        );
       } catch (error) {
         setState(
           isStaleProblem(error)
@@ -264,7 +274,7 @@ export function ComparePage() {
 
   const comparison =
     state.kind === "allocating"
-      ? allocation.data
+      ? (allocation.data ?? state.previous)
       : state.kind === "submitting" ||
           state.kind === "uncertain" ||
           state.kind === "recorded"
@@ -274,7 +284,11 @@ export function ComparePage() {
   const status = (() => {
     switch (state.kind) {
       case "allocating":
-        return allocation.data ? copy.compare.status.ready : "";
+        return allocation.data
+          ? copy.compare.status.ready
+          : comparison
+            ? copy.compare.loading
+            : "";
       case "submitting":
         return copy.compare.status.submitting(outcomeLabels[state.outcome]);
       case "uncertain":
@@ -287,6 +301,9 @@ export function ComparePage() {
         return "";
     }
   })();
+  const expiry = comparison
+    ? expiryState(comparison.expiresAt, now)
+    : undefined;
 
   return (
     <section className={styles.comparePage} aria-labelledby="compare-title">
@@ -297,10 +314,13 @@ export function ComparePage() {
         <p className={styles.irreversible}>{copy.compare.irreversible}</p>
       </header>
 
-      {state.kind === "allocating" && allocation.isPending ? (
+      {state.kind === "allocating" && allocation.isPending && !comparison ? (
         <p role="status">{copy.compare.loading}</p>
       ) : state.kind === "allocating" && allocation.isError ? (
-        <AllocationRecovery error={allocation.error} onRetry={requestCurrent} />
+        <AllocationRecovery
+          error={allocation.error}
+          onRetry={() => requestCurrent()}
+        />
       ) : state.kind === "stale" ? (
         <section className={styles.comparisonRecovery}>
           <p className={styles.eyebrow}>{copy.compare.stale.eyebrow}</p>
@@ -308,18 +328,15 @@ export function ComparePage() {
           <p>{copy.compare.stale.detail}</p>
           <ProblemNotice
             error={state.error}
-            onRetry={requestCurrent}
+            onRetry={() => requestCurrent()}
             retryLabel={copy.compare.stale.action}
           />
         </section>
       ) : comparison ? (
         <>
-          <div className={styles.comparisonMeta}>
-            <p>
-              Comparison <code>{comparison.comparisonId}</code>
-            </p>
-            <p>{expiryCopy(comparison.expiresAt, now)}</p>
-          </div>
+          {expiry?.urgent ? (
+            <p className={styles.expiryWarning}>{expiry.text}</p>
+          ) : null}
           <div className={styles.comparisonGrid}>
             <ComparisonCard
               comparison={comparison}
@@ -371,13 +388,19 @@ export function ComparePage() {
               retryLabel={copy.compare.retry(outcomeLabels[state.outcome])}
             />
           ) : null}
-          <aside
-            className={styles.shortcutHelp}
-            aria-labelledby="shortcut-title"
-          >
-            <h2 id="shortcut-title">{copy.compare.shortcuts.title}</h2>
+          <details className={styles.comparisonDetails}>
+            <summary>{copy.compare.details}</summary>
+            <div className={styles.comparisonMeta}>
+              <p>
+                Comparison <code>{comparison.comparisonId}</code>
+              </p>
+              <p>{expiry?.text}</p>
+            </div>
+          </details>
+          <details className={styles.comparisonDetails}>
+            <summary>{copy.compare.shortcuts.title}</summary>
             <p>{copy.compare.shortcuts.detail}</p>
-          </aside>
+          </details>
         </>
       ) : null}
     </section>

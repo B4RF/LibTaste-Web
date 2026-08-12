@@ -110,3 +110,62 @@ test("library pagination and eligibility remain server-authoritative", async ({
     page.getByText("Not eligible for comparisons").first(),
   ).toBeVisible();
 });
+
+test("library filters are server-backed, URL-addressable, and retained for pagination", async ({
+  page,
+}) => {
+  await configureAuthenticatedLibrary(page);
+  const requests: URL[] = [];
+  await page.route("**/api/v1/me/library**", async (route) => {
+    const url = new URL(route.request().url());
+    requests.push(url);
+    const cursor = url.searchParams.get("cursor");
+    await route.fulfill({
+      json: {
+        items: cursor
+          ? [{ ...portal, appId: 401, name: "Portal 2" }]
+          : [portal],
+        nextCursor: cursor ? null : "filtered-cursor",
+      },
+    });
+  });
+
+  await page.getByRole("link", { name: "Library" }).click();
+  await page.getByRole("searchbox", { name: "Game name" }).fill("Portal");
+  await page
+    .getByRole("combobox", { name: "Effective eligibility" })
+    .selectOption("true");
+  await page
+    .getByRole("combobox", { name: "Eligibility override" })
+    .selectOption("EXCLUDED");
+
+  await expect(page).toHaveURL((url) => {
+    return (
+      url.searchParams.get("name") === "Portal" &&
+      url.searchParams.get("effectivelyEligible") === "true" &&
+      url.searchParams.get("eligibilityOverride") === "EXCLUDED"
+    );
+  });
+  await expect
+    .poll(() =>
+      requests.some(
+        (url) =>
+          url.searchParams.get("name") === "Portal" &&
+          url.searchParams.get("effectivelyEligible") === "true" &&
+          url.searchParams.get("eligibilityOverride") === "EXCLUDED",
+      ),
+    )
+    .toBe(true);
+
+  await page.getByRole("button", { name: "Load more" }).click();
+  await expect(page.getByRole("heading", { name: "Portal 2" })).toBeVisible();
+  const paged = requests.find(
+    (url) => url.searchParams.get("cursor") === "filtered-cursor",
+  );
+  expect(paged?.searchParams.get("name")).toBe("Portal");
+  expect(paged?.searchParams.get("effectivelyEligible")).toBe("true");
+  expect(paged?.searchParams.get("eligibilityOverride")).toBe("EXCLUDED");
+
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(page).toHaveURL("/library");
+});

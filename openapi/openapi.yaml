@@ -172,7 +172,7 @@ paths:
           in: query
           schema:
             type: string
-          description: Opaque continuation cursor from the previous response.
+          description: Opaque continuation cursor from the previous response; valid only with the originating filters.
         - name: limit
           in: query
           schema:
@@ -180,6 +180,24 @@ paths:
             minimum: 1
             maximum: 100
             default: 50
+        - name: name
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+          description: Case-insensitive substring match over imported game names.
+        - name: effectivelyEligible
+          in: query
+          schema:
+            type: boolean
+          description: Match the server-computed effective comparison eligibility.
+        - name: eligibilityOverride
+          in: query
+          schema:
+            type: string
+            enum: [DEFAULT, INCLUDED, EXCLUDED]
+          description: Match the user's explicit comparison-eligibility override behavior.
       responses:
         '200':
           description: Imported current and historical ownership entries in stable App-ID order.

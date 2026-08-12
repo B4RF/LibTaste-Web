@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { Artwork } from "../../components/Artwork";
 import { copy } from "../../content/copy";
 import styles from "../../styles/App.module.css";
 import { recommendationQueryKey } from "../recommendations/recommendationApi";
@@ -78,36 +78,22 @@ function AuthenticatedProfileSyncStatus() {
     });
   }, [job, recordUpdate, session]);
 
-  if (!profileQuery.data) return null;
-  const profile = profileQuery.data;
+  if (
+    !displayedJob ||
+    (!isActiveSync(displayedJob) && displayedJob.status !== "FAILED")
+  )
+    return null;
   return (
     <aside
       className={styles.profileStatus}
-      aria-label={copy.library.profileStatus}
+      aria-label={copy.library.synchronizationStatus}
     >
-      <div className={styles.profileIdentity}>
-        <Artwork
-          kind="avatar"
-          src={profile.avatarUrl}
-          name={profile.displayName ?? copy.library.steamPlayer}
-        />
-        <div>
-          <strong>{profile.displayName ?? copy.library.steamPlayer}</strong>
-          {profile.profileUrl ? (
-            <a href={profile.profileUrl} rel="noreferrer" target="_blank">
-              {copy.library.openSteamProfile}
-            </a>
-          ) : null}
-        </div>
-      </div>
-      <div>
-        <span className={styles.statusBadge}>
-          {profile.libraryState.replace("_", " ")}
+      <Link to="/library">
+        <span className={styles.statusBadge} role="status">
+          {syncLabel(displayedJob)}
         </span>
-        {displayedJob ? (
-          <span role="status">{syncLabel(displayedJob)}</span>
-        ) : null}
-      </div>
+        <span>Open Library</span>
+      </Link>
     </aside>
   );
 }

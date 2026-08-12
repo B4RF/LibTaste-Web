@@ -8,7 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { SessionManager } from "../../api/client";
 import type { components } from "../../api/generated";
@@ -78,7 +78,14 @@ function authenticatedFetcher(
   });
 }
 
-function renderLibrary(fetcher: typeof fetch) {
+function LocationProbe() {
+  const location = useLocation();
+  return (
+    <output data-testid="location">{`${location.pathname}${location.search}`}</output>
+  );
+}
+
+function renderLibrary(fetcher: typeof fetch, route = "/library") {
   document.cookie = "libtaste_csrf=test; path=/";
   const session = new SessionManager(config, { fetcher });
   const queryClient = new QueryClient({
@@ -90,8 +97,9 @@ function renderLibrary(fetcher: typeof fetch) {
       session={session}
       queryClient={queryClient}
     >
-      <MemoryRouter initialEntries={["/library"]}>
+      <MemoryRouter initialEntries={[route]}>
         <ApplicationRoutes config={config} />
+        <LocationProbe />
       </MemoryRouter>
     </ApplicationProviders>,
   );
@@ -267,6 +275,88 @@ describe("Steam library", () => {
     expect(names).toEqual(["Portal", "Half-Life", "Hades"]);
   });
 
+  it("searches and filters on the server, preserves filtered cursors, and records URL state", async () => {
+    const filteredPortal = {
+      ...portal,
+      eligibilityOverride: "EXCLUDED",
+      effectivelyEligible: false,
+    } satisfies LibraryItem;
+    const filteredHades = {
+      ...filteredPortal,
+      appId: 402,
+      name: "Hades",
+    } satisfies LibraryItem;
+    const requestUrls: URL[] = [];
+    const fetcher = authenticatedFetcher((url) => {
+      if (url.pathname.endsWith("/me")) return json(profile);
+      if (url.pathname.endsWith("/me/library")) {
+        requestUrls.push(new URL(url));
+        if (url.searchParams.get("name") === "Missing") {
+          return json({ items: [], nextCursor: null });
+        }
+        if (url.searchParams.get("cursor") === "filtered-cursor") {
+          return json({ items: [filteredHades], nextCursor: null });
+        }
+        if ([...url.searchParams.keys()].length > 0) {
+          return json({
+            items: [filteredPortal],
+            nextCursor: "filtered-cursor",
+          });
+        }
+        return json({ items: [portal], nextCursor: null });
+      }
+      throw new Error(`Unexpected request: GET ${url}`);
+    });
+    renderLibrary(fetcher);
+    await screen.findByRole("heading", { name: "Portal" });
+
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Game name" }),
+      "Portal",
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/library?name=Portal",
+      ),
+    );
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Effective eligibility" }),
+      "false",
+    );
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Eligibility override" }),
+      "EXCLUDED",
+    );
+
+    await waitFor(() => {
+      const latest = requestUrls.at(-1)!;
+      expect(latest.searchParams.get("name")).toBe("Portal");
+      expect(latest.searchParams.get("effectivelyEligible")).toBe("false");
+      expect(latest.searchParams.get("eligibilityOverride")).toBe("EXCLUDED");
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(await screen.findByRole("heading", { name: "Hades" })).toBeVisible();
+    const continued = requestUrls.at(-1)!;
+    expect(continued.searchParams.get("cursor")).toBe("filtered-cursor");
+    expect(continued.searchParams.get("name")).toBe("Portal");
+    expect(continued.searchParams.get("effectivelyEligible")).toBe("false");
+    expect(continued.searchParams.get("eligibilityOverride")).toBe("EXCLUDED");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Clear filters" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(/^\/library$/),
+    );
+    await userEvent.type(
+      screen.getByRole("searchbox", { name: "Game name" }),
+      "Missing",
+    );
+    expect(
+      await screen.findByText("No games match these filters."),
+    ).toBeVisible();
+  });
+
   it("shows only the server-confirmed eligibility and preserves it after rejection", async () => {
     let eligibilityAttempts = 0;
     let resolveEligibility: ((response: Response) => void) | undefined;
@@ -334,7 +424,7 @@ describe("Steam library", () => {
       await screen.findByRole("heading", { name: "Game 100" }),
     ).toBeVisible();
     expect(screen.getAllByRole("article")).toHaveLength(100);
-    for (const image of screen.getAllByRole("img")) {
+    for (const image of screen.getAllByRole("img", { name: /artwork/i })) {
       expect(image).toHaveAttribute("loading", "lazy");
     }
     expect(

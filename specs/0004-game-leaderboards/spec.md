@@ -3,7 +3,7 @@
 Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-10
+Last updated: 2026-08-12
 Supersedes: None  
 Superseded by: None
 
@@ -25,7 +25,8 @@ explain status, evidence counts, and the non-comparability of their scores.
 - Cursor-driven Load more behavior, stable entry rendering, loading, empty, end, and recoverable error states.
 - Personal current/historical toggle.
 - Rank, artwork, game name, score, ranking status, and leaderboard-specific evidence counts.
-- Explanations of provisional status and distinct personal/global score meanings.
+- Concise, progressively disclosed explanations of provisional status and distinct personal/global score meanings.
+- Locale-aware score display with no more than two fractional digits.
 
 ## Non-goals
 
@@ -42,8 +43,9 @@ explain status, evidence counts, and the non-comparability of their scores.
 - **FR-003:** Each global entry shall display rank, artwork or fallback, game name, status, contributor count, and global
   score. Each personal entry shall display rank, artwork or fallback, game name, status, comparison count, ownership,
   effective eligibility, and personal score or the absence of a score.
-- **FR-004:** Both pages shall define Provisional and Ranked in user-facing language and shall explain that personal and
-  global score values have different meanings and must not be directly compared.
+- **FR-004:** Both pages shall identify Provisional and Ranked in user-facing language and shall explain that personal
+  and global score values have different meanings and must not be directly compared. The essential distinction shall be
+  concise, while detailed definitions may be placed in an accessible scoring-information disclosure.
 - **FR-005:** The personal page shall offer a current/historical-games toggle. Changing it shall discard incompatible
   pages and cursors and reload from the first server page with `includeHistorical` set to the selected value.
 - **FR-006:** When `nextCursor` exists, a Load more action shall append the next page exactly once without renumbering,
@@ -51,7 +53,8 @@ explain status, evidence counts, and the non-comparability of their scores.
 - **FR-007:** Loading another page shall preserve already loaded entries. A later-page failure shall provide an inline
   retry while leaving successful entries readable; a first-page failure shall provide a page-level safe retry state.
 - **FR-008:** Null personal scores shall display a clear not-yet-scored value and shall not be coerced to zero. Numeric
-  scores shall be presented without implying additional precision beyond the API transport value.
+  scores shall use locale-aware presentation with no more than two fractional digits. Display rounding shall not change
+  the transport value, server-provided rank, or entry order.
 - **FR-009:** Empty global and personal results, terminal pagination, loading, and rate-limited states shall be distinct
   and shall not display fabricated sample rankings.
 
@@ -110,13 +113,21 @@ state
 
 **Given** a user can navigate between personal and global leaderboards  
 **When** score help is read on either page  
-**Then** it identifies the active leaderboard's score meaning and explicitly says the two score types are not comparable
+**Then** concise visible help identifies the active leaderboard's score scope and says the two score types are not
+comparable, with the full meaning available through accessible scoring information
 
 ### AC-008: Empty global leaderboard
 
 **Given** the global API returns no entries  
 **When** a visitor opens the page  
 **Then** a truthful empty state is shown without sample entries or a login requirement
+
+### AC-009: Format leaderboard scores compactly
+
+**Given** a leaderboard contains integer and higher-precision numeric scores
+**When** either leaderboard table is rendered
+**Then** each numeric score uses the active locale with no more than two fractional digits, null remains not yet scored,
+and the entries retain the API's rank and order
 
 ## Interfaces and data
 
@@ -159,8 +170,9 @@ None.
 | AC-004 | Browser test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` opaque-cursor append and duplicate suppression | Passed 2026-08-10 |
 | AC-005 | Browser test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` retained-row identical-cursor retry | Passed 2026-08-10 |
 | AC-006 | Component accessibility test | `LeaderboardPage.test.tsx` null score, Provisional copy, and axe assertions | Passed 2026-08-10 |
-| AC-007 | Content/component test | `LeaderboardPage.test.tsx` distinct personal/global score and evidence labels | Passed 2026-08-10 |
+| AC-007 | Content/component test | `LeaderboardPage.test.tsx` distinct personal/global score and evidence labels | Passed 2026-08-12 |
 | AC-008 | Browser/component test | `LeaderboardPage.test.tsx` truthful global empty state without rows | Passed 2026-08-10 |
+| AC-009 | Component/browser formatting test | `LeaderboardPage.test.tsx`, `apps/web/e2e/leaderboards.spec.ts` | Passed 2026-08-12 |
 | NFR-001 | Automated accessibility and viewport tests | `LeaderboardPage.test.tsx` axe audits; `leaderboards.spec.ts` narrow-screen overflow assertion across five browser projects | Passed 2026-08-10 |
 | NFR-002 | Performance-oriented component test | `LeaderboardPage.test.tsx` renders 100 contract-shaped rows with lazy artwork and content visibility | Passed 2026-08-10 |
 | NFR-003 | Network/cache-boundary test | `LeaderboardPage.test.tsx`; `leaderboards.spec.ts` assert only a public cache entry and no refresh, credential, token, or personal request on the public route | Passed 2026-08-10 |
@@ -173,6 +185,8 @@ None.
 | `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 62 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-10 |
 | `npm.cmd run e2e --workspace apps/web -- --workers=1` | Passed: 65 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-10 |
+| `npm.cmd run verify` | Passed: 92 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-12 |
+| Personal leaderboard navigation journey across five Playwright projects | Passed | 2026-08-12 |
 
 ## Completion checklist
 

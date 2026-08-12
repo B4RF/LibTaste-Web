@@ -3,7 +3,7 @@
 Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-10
+Last updated: 2026-08-13
 Supersedes: None  
 Superseded by: None
 
@@ -15,16 +15,17 @@ the user cannot diagnose missing games or control which owned games enter compar
 
 ## Desired outcome
 
-An authenticated user can see their Steam identity and synchronization state, request a permitted synchronization,
-browse every imported game page-by-page, and control each currently owned game's comparison eligibility with clear,
-server-confirmed feedback.
+An authenticated user can reach their Steam identity and synchronization state without a permanent profile strip,
+request a permitted synchronization, search and filter every imported game page-by-page, and control each currently
+owned game's comparison eligibility with clear, server-confirmed feedback.
 
 ## Scope
 
-- Authenticated profile summary and globally visible active synchronization status.
+- Authenticated profile disclosure and compact globally visible actionable synchronization status.
 - Durable job polling, terminal status, manual synchronization, throttling feedback, and private-library guidance.
 - Cursor-paginated Steam library with artwork, ownership, playtime, and eligibility state.
 - `DEFAULT`, `INCLUDED`, and `EXCLUDED` eligibility controls for applicable library entries.
+- Server-backed case-insensitive name search, effective-eligibility filtering, and explicit-override filtering.
 - Loading, empty, partial-image, retryable-error, and terminal-error states.
 
 ## Non-goals
@@ -35,12 +36,14 @@ server-confirmed feedback.
 
 ## Functional requirements
 
-- **FR-001:** After authentication, the app shall read `/me` and display available Steam display name, avatar, profile
-  link, library state, last synchronization information, and current synchronization summary without exposing Steam ID
-  as the primary user-facing name.
-- **FR-002:** While synchronization is `PENDING`, `RUNNING`, or `RETRY_WAIT`, the app shall show a persistent status and
-  poll the durable job with bounded backoff; it shall stop polling on `SUCCEEDED`, `FAILED`, sign-out, or route disposal
-  when no mounted feature requires the status.
+- **FR-001:** After authentication, the app shall read `/me`, place the available Steam display name, avatar, and
+  external Steam-profile link in the authenticated profile disclosure, and display library state, last synchronization
+  information, and current synchronization details on Library without exposing Steam ID as the primary user-facing
+  name.
+- **FR-002:** While synchronization is `PENDING`, `RUNNING`, or `RETRY_WAIT`, the app shall show a compact persistent
+  status linked to Library and poll the durable job with bounded backoff. A failed latest job shall remain available as
+  a compact actionable status, while successful or idle state shall not consume a permanent shell row. Polling shall
+  stop on `SUCCEEDED`, `FAILED`, sign-out, or route disposal when no mounted feature requires the status.
 - **FR-003:** The library page shall allow a user to request manual synchronization, explain the one-hour API throttle,
   reuse an equivalent active job returned by the API, and prevent duplicate submissions while a request is pending.
 - **FR-004:** A private or unavailable Steam library shall leave the user signed in, explain that Steam game details must
@@ -56,6 +59,14 @@ server-confirmed feedback.
   entries, reorder the server's stable App-ID ordering, or replace newer eligibility responses.
 - **FR-009:** Empty, loading, unavailable, failed-sync, end-of-library, and recoverable Problem Details states shall be
   distinguishable and shall retain already loaded usable library content where safe.
+- **FR-010:** Library shall offer a clearable free-text name filter whose server result is a case-insensitive substring
+  match over imported game names, plus filters for effective eligibility (`All`, `Eligible`, `Not eligible`) and explicit
+  override (`All`, `Default`, `Included`, `Excluded`). The interface shall label the two eligibility concepts distinctly.
+- **FR-011:** Filter state shall be represented in the URL, and any filter change shall discard incompatible pages and
+  cursors before requesting the first matching server page. Name input shall be debounced so ordinary typing does not
+  issue one request per keystroke.
+- **FR-012:** Filtered pagination shall apply the same filter combination to every continuation request, preserve server
+  order, and show a distinct no-matches state without implying that the imported library itself is empty.
 
 ## Non-functional requirements
 
@@ -67,6 +78,8 @@ server-confirmed feedback.
   perform image downloads or expensive rendering for entries outside a reasonable viewport buffer.
 - **NFR-004:** Feature tests shall use contract-shaped responses generated or typed from `openapi/openapi.yaml`; Steam
   availability and synchronization timing shall be deterministic in automated tests.
+- **NFR-005:** Filtering shall be performed by `GET /me/library` rather than only against already loaded client pages;
+  the API shall bind opaque cursors to the active filter combination and reject incompatible cursor/filter reuse.
 
 ## Acceptance scenarios
 
@@ -118,13 +131,43 @@ server-confirmed feedback.
 **When** it is rendered  
 **Then** it is clearly marked historical and cannot imply that it is currently eligible for a new comparison
 
+### AC-009: Use the compact profile and synchronization controls
+
+**Given** an authenticated profile is loaded
+**When** no synchronization needs attention
+**Then** the Steam identity and external profile link are available from the profile disclosure without a permanent
+profile-status row, and Library displays the detailed library state
+
+### AC-010: Search the imported library by name
+
+**Given** the imported library contains matching and non-matching games across multiple pages
+**When** the user enters a free-text name query
+**Then** the URL records the query and the first server page contains only case-insensitive name matches rather than
+filtering only the pages previously loaded by the browser
+
+### AC-011: Filter library eligibility
+
+**Given** imported games have different effective eligibility and explicit override values
+**When** the user selects either or both eligibility filters
+**Then** the first server page matches the selected combination and the interface keeps effective eligibility distinct
+from Default, Included, and Excluded override behavior
+
+### AC-012: Continue and clear a filtered library
+
+**Given** a filtered response contains a continuation cursor
+**When** the user loads more and then changes or clears a filter
+**Then** continuation uses the unchanged filter combination, while the filter change discards old pages and starts a
+new first-page request with a truthful filtered-empty state when no games match
+
 ## Interfaces and data
 
-- Consumes `GET /api/v1/me`, `GET /api/v1/me/library`, `GET|POST /api/v1/me/library-sync`, and
+- Consumes `GET /api/v1/me`, filtered `GET /api/v1/me/library`, `GET|POST /api/v1/me/library-sync`, and
   `PUT /api/v1/me/library/{appId}/eligibility`.
 - Uses `MeProfile`, `LibrarySyncJob`, `LibraryPage`, `LibraryItem`, `EligibilityRequest`, and RFC 9457 `Problem` schemas
   from `openapi/openapi.yaml` without extending their meanings on the client.
 - Uses opaque cursors only as returned continuation values and never parses, fabricates, persists, or displays them.
+- `GET /api/v1/me/library` accepts optional `name`, `effectivelyEligible`, and `eligibilityOverride` query parameters;
+  `name` is a case-insensitive substring match and each continuation cursor is valid only with its originating filters.
 
 ## Compatibility and rollout
 
@@ -154,7 +197,7 @@ None.
 
 | ID | Verification type | Test or evidence | Result |
 |---|---|---|---|
-| AC-001 | Component/integration test | `apps/web/src/app/App.test.tsx`, `apps/web/src/features/library/syncPolling.test.ts` | Passed 2026-08-10 |
+| AC-001 | Component/integration test | `apps/web/src/app/App.test.tsx`, `apps/web/src/features/library/syncPolling.test.ts` | Passed 2026-08-12 |
 | AC-002 | Browser/component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
 | AC-003 | Integration test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
 | AC-004 | Component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
@@ -162,9 +205,14 @@ None.
 | AC-006 | Browser test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-10 |
 | AC-007 | Browser/component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
 | AC-008 | Component test | `apps/web/src/features/library/LibraryPage.test.tsx` | Passed 2026-08-10 |
+| AC-009 | Component/browser navigation test | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/library.spec.ts`, `apps/web/src/components/Artwork.test.tsx` | Passed 2026-08-13 |
+| AC-010 | Component/browser contract test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
+| AC-011 | Component/browser contract test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
+| AC-012 | Component/browser pagination test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
 | NFR-002 | Timer and visibility test | `apps/web/src/features/library/syncPolling.test.ts` | Passed 2026-08-10 |
 | NFR-003 | Performance-oriented component test | `apps/web/src/features/library/LibraryPage.test.tsx` (100 contract-shaped lazy-rendered entries) | Passed 2026-08-10 |
-| NFR-004 | Contract fixture review | Typed fixtures in `apps/web/src/features/library/LibraryPage.test.tsx` and `apps/web/e2e/library.spec.ts` | Passed 2026-08-10 |
+| NFR-004 | Contract fixture review | Typed fixtures in `apps/web/src/features/library/LibraryPage.test.tsx` and `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
+| NFR-005 | Contract and request-boundary tests | `apps/web/src/features/library/LibraryPage.test.tsx`, generated OpenAPI drift check | Passed 2026-08-12 |
 
 ## Verification commands
 
@@ -175,6 +223,11 @@ None.
 | `npm run test --workspace apps/web` | Passed (44 tests) | 2026-08-10 |
 | `npm run coverage --workspace apps/web` | Passed (89.69% statements, 82.06% branches, 90.16% functions, 91.89% lines) | 2026-08-10 |
 | `npx playwright test` | Passed (30 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari) | 2026-08-10 |
+| `npm.cmd run verify` | Passed: 92 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-12 |
+| Library filter journey across five Playwright projects, with three repeated WebKit race checks | Passed | 2026-08-12 |
+| Focused profile-avatar and application navigation component tests | Passed (12 tests) | 2026-08-13 |
+| Grouped-navigation Playwright journey in Chromium | Passed | 2026-08-13 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 93 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-13 |
 
 ## Completion checklist
 

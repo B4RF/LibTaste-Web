@@ -7,18 +7,20 @@ const runtimeConfig = {
 };
 
 async function configureAuthenticatedSettings(page: Page) {
+  let tokenRequests = 0;
   await page.route("**/config.json", (route) =>
     route.fulfill({ json: runtimeConfig }),
   );
-  await page.route("**/api/v1/auth/token", (route) =>
-    route.fulfill({
+  await page.route("**/api/v1/auth/token", (route) => {
+    tokenRequests += 1;
+    return route.fulfill({
       json: {
         access_token: "settings-access",
         token_type: "Bearer",
         expires_in: 900,
       },
-    }),
-  );
+    });
+  });
   await page.route("**/api/v1/me", (route) => {
     if (route.request().method() !== "GET") return route.fallback();
     return route.fulfill({
@@ -30,15 +32,26 @@ async function configureAuthenticatedSettings(page: Page) {
       },
     });
   });
-  await page.goto("/");
-  await page.evaluate(() => {
-    document.cookie = "libtaste_csrf=e2e-settings-csrf; path=/";
-  });
-  await page.getByRole("link", { name: "Settings" }).click();
-  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await page.route("**/api/v1/me/library**", (route) =>
+    route.fulfill({ json: { items: [], nextCursor: null } }),
+  );
+  await page.context().addCookies([
+    {
+      name: "libtaste_csrf",
+      value: "e2e-settings-csrf",
+      url: "http://127.0.0.1:4173",
+    },
+  ]);
+  await page.goto("/library");
+  await expect.poll(() => tokenRequests).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Browser Pilot profile" }).click();
+  await page.getByRole("link", { name: "Account & Security" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Account & Security" }),
+  ).toBeVisible();
 }
 
-test("current logout is one protected request and stale Settings stays guarded", async ({
+test("current logout is one protected request and stale account page stays guarded", async ({
   page,
 }) => {
   let logoutRequests = 0;
@@ -58,7 +71,10 @@ test("current logout is one protected request and stale Settings stays guarded",
     page.getByText("You have been logged out on this device."),
   ).toBeVisible();
   expect(logoutRequests).toBe(1);
-  await page.getByRole("link", { name: "Settings" }).click();
+  await page.evaluate(() => {
+    document.cookie = "libtaste_csrf=; Max-Age=0; path=/";
+  });
+  await page.goto("/settings");
   await expect(
     page.getByRole("heading", { name: "Sign in to continue" }),
   ).toBeVisible();
@@ -138,14 +154,22 @@ test("an uncertain deletion checks the session without repeating DELETE", async 
       },
     });
   });
+  await page.route("**/api/v1/me/library**", (route) =>
+    route.fulfill({ json: { items: [], nextCursor: null } }),
+  );
   await page.route("**/config.json", (route) =>
     route.fulfill({ json: runtimeConfig }),
   );
-  await page.goto("/");
-  await page.evaluate(() => {
-    document.cookie = "libtaste_csrf=e2e-settings-csrf; path=/";
-  });
-  await page.getByRole("link", { name: "Settings" }).click();
+  await page.context().addCookies([
+    {
+      name: "libtaste_csrf",
+      value: "e2e-settings-csrf",
+      url: "http://127.0.0.1:4173",
+    },
+  ]);
+  await page.goto("/library");
+  await page.getByRole("button", { name: "Browser Pilot profile" }).click();
+  await page.getByRole("link", { name: "Account & Security" }).click();
   await page.getByRole("button", { name: "Delete account" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("textbox").fill("DELETE");

@@ -2,7 +2,7 @@
 
 React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, Steam
 profile and library management, pairwise game comparisons, personalized recommendations, personal and global game
-leaderboards, and account/session settings.
+leaderboards, and account/security controls.
 
 ## Development
 
@@ -50,11 +50,14 @@ The check fails with the regeneration command if the committed representation is
 
 ## Steam profile and library
 
-Authenticated routes share a persistent Steam profile and library-synchronization summary. Active durable jobs poll
-with bounded backoff, pause in hidden documents, and stop after success, failure, or sign-out. The Library route:
+Authenticated routes place Steam identity, the external profile link, and Account & Security in a compact profile
+disclosure. Only active or failed library synchronization occupies persistent shell space. Active durable jobs poll with
+bounded backoff, pause in hidden documents, and stop after success, failure, or sign-out. The Library route:
 
 - explains private or unavailable Steam game details and links to official Steam privacy guidance;
 - supports one-at-a-time manual synchronization with safe cooldown and Problem Details feedback;
+- sends URL-addressable name, effective-eligibility, and explicit-override filters to the API and retains them for every
+  opaque cursor request;
 - appends opaque cursor pages in server order while retaining successful content after later failures;
 - renders artwork lazily and uses off-viewport containment for pages of up to 100 games; and
 - changes Default, Include, or Exclude eligibility without replacing the displayed server-confirmed state until the API
@@ -65,6 +68,8 @@ with bounded backoff, pause in hidden documents, and stop after success, failure
 The protected Compare route restores the exact server-issued left/right pair and submits `LEFT_WIN`, `RIGHT_WIN`,
 `DRAW`, or `SKIP` immediately. Outcome controls lock synchronously, uncertain requests can only retry the identical
 comparison ID and outcome, and successful submissions briefly announce the result before requesting the next pair.
+The previous pair remains in a locked, stable stage while that next allocation is pending, avoiding a collapse-induced
+scroll jump. Comparison metadata, ordinary expiry, and shortcut help use accessible disclosures below the controls.
 
 Keyboard shortcuts are L for left, R for right, D for draw, and S for skip. They remain inactive when another
 interactive or text-entry control has focus. Expired or conflicting pairs are discarded, and allocation failures expose
@@ -79,8 +84,9 @@ view with a first-page historical request. Both leaderboards:
 - preserve the API's rank and entry order while appending opaque cursor pages;
 - retain completed pages and retry the same cursor after a later-page failure;
 - distinguish loading, empty, rate-limited, retry, and terminal states;
-- render lazy artwork, status, evidence counts, and transport score precision in responsive semantic tables; and
-- explain Provisional and Ranked status while keeping personal and global score meanings explicitly non-comparable.
+- render lazy artwork, status, evidence counts, and locale-aware scores with at most two fractional digits in responsive
+  semantic tables; and
+- give a concise score distinction up front while keeping detailed status and non-comparability help in a disclosure.
 
 ## Game recommendations
 
@@ -93,9 +99,10 @@ eligibility changes, and successful library synchronization invalidate them; ses
 with other protected data. Distinct successful empty states explain insufficient personal evidence, limited rating
 variation, insufficient community evidence, or an exhausted eligible catalog.
 
-## Account and session settings
+## Account and security
 
-The protected Settings route can end the current browser session, explicitly confirm revocation of every LibTaste
+The protected Account & Security route (kept at `/settings`) can end the current browser session, explicitly confirm
+revocation of every LibTaste
 session, or permanently delete the LibTaste account after exact `DELETE` confirmation. Destructive requests use bearer,
 credential, and CSRF protection and are sent only once; an uncertain deletion checks ordinary cookie-backed session
 state without automatically repeating the request.

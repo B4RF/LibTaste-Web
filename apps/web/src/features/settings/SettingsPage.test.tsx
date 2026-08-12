@@ -86,7 +86,7 @@ describe("SettingsPage", () => {
     const user = userEvent.setup();
 
     expect(
-      await screen.findByRole("heading", { name: "Settings" }),
+      await screen.findByRole("heading", { name: "Account & Security" }),
     ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Log out this device" }),
@@ -135,7 +135,7 @@ describe("SettingsPage", () => {
     renderSettings(fetcher);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: "Settings" });
+    await screen.findByRole("heading", { name: "Account & Security" });
     await user.click(
       screen.getByRole("button", { name: "Log out this device" }),
     );
@@ -151,7 +151,7 @@ describe("SettingsPage", () => {
       "settings-csrf",
     );
 
-    await user.click(screen.getByRole("link", { name: "Settings" }));
+    await user.click(screen.getByRole("link", { name: "Library" }));
     expect(
       await screen.findByRole("heading", { name: "Sign in to continue" }),
     ).toBeVisible();
@@ -164,7 +164,7 @@ describe("SettingsPage", () => {
     );
     renderSettings(fetcher);
 
-    await screen.findByRole("heading", { name: "Settings" });
+    await screen.findByRole("heading", { name: "Account & Security" });
     await userEvent.click(
       screen.getByRole("button", { name: "Log out this device" }),
     );
@@ -184,7 +184,7 @@ describe("SettingsPage", () => {
     renderSettings(fetcher);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: "Settings" });
+    await screen.findByRole("heading", { name: "Account & Security" });
     await user.click(
       screen.getByRole("button", { name: "Log out all devices" }),
     );
@@ -221,7 +221,7 @@ describe("SettingsPage", () => {
     renderSettings(fetcher);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: "Settings" });
+    await screen.findByRole("heading", { name: "Account & Security" });
     await user.click(screen.getByRole("button", { name: "Delete account" }));
     const dialog = screen.getByRole("dialog");
     await user.type(within(dialog).getByRole("textbox"), "DELETE");
@@ -248,7 +248,7 @@ describe("SettingsPage", () => {
     expect(screen.queryByText(/restore/i)).not.toBeInTheDocument();
   });
 
-  it("keeps Settings and permits explicit retry after a recoverable Problem Details failure", async () => {
+  it("keeps Account & Security and permits explicit retry after a recoverable Problem Details failure", async () => {
     let attempts = 0;
     const fetcher = standardFetcher(() =>
       problem(429, "Too many requests", `req-${++attempts}`),
@@ -256,7 +256,7 @@ describe("SettingsPage", () => {
     renderSettings(fetcher);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: "Settings" });
+    await screen.findByRole("heading", { name: "Account & Security" });
     await user.click(screen.getByRole("button", { name: "Delete account" }));
     const dialog = screen.getByRole("dialog");
     await user.type(within(dialog).getByRole("textbox"), "DELETE");
@@ -269,7 +269,9 @@ describe("SettingsPage", () => {
     expect(
       await within(dialog).findByRole("heading", { name: "Too many requests" }),
     ).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Settings" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Account & Security" }),
+    ).toBeVisible();
     await user.click(within(dialog).getByText("Support details"));
     expect(within(dialog).getByText("Request ID:")).toBeVisible();
     const retry = within(dialog).getByRole("button", {
@@ -305,7 +307,7 @@ describe("SettingsPage", () => {
     renderSettings(fetcher);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: "Settings" });
+    await screen.findByRole("heading", { name: "Account & Security" });
     await user.click(screen.getByRole("button", { name: "Delete account" }));
     const dialog = screen.getByRole("dialog");
     await user.type(within(dialog).getByRole("textbox"), "DELETE");
@@ -350,7 +352,7 @@ describe("SettingsPage", () => {
     renderSettings(fetcher);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: "Settings" });
+    await screen.findByRole("heading", { name: "Account & Security" });
     await user.click(screen.getByRole("button", { name: "Delete account" }));
     const dialog = screen.getByRole("dialog");
     await user.type(within(dialog).getByRole("textbox"), "DELETE");

@@ -16,6 +16,13 @@ import {
 const globalQueryKey = ["leaderboard", "global"] as const;
 const personalQueryKey = (includeHistorical: boolean) =>
   ["leaderboard", "personal", includeHistorical] as const;
+const scoreFormatter = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 2,
+});
+
+export function formatScore(score: number): string {
+  return scoreFormatter.format(score);
+}
 
 function uniqueEntries<T extends { appId: number; rank: number }>(
   pages: { items: T[] }[] | undefined,
@@ -68,12 +75,14 @@ function PageHeader({
   title,
   eyebrow,
   summary,
+  scoreSummary,
   scoreHelp,
   action,
 }: {
   title: string;
   eyebrow: string;
   summary: string;
+  scoreSummary: string;
   scoreHelp: string;
   action?: ReactNode;
 }) {
@@ -83,8 +92,12 @@ function PageHeader({
         <p className={styles.eyebrow}>{eyebrow}</p>
         <h1>{title}</h1>
         <p>{summary}</p>
-        <p className={styles.leaderboardHelp}>{scoreHelp}</p>
-        <StatusHelp />
+        <p className={styles.leaderboardHelp}>{scoreSummary}</p>
+        <details className={styles.infoDisclosure}>
+          <summary>{copy.leaderboards.scoringInfo}</summary>
+          <p className={styles.leaderboardHelp}>{scoreHelp}</p>
+          <StatusHelp />
+        </details>
       </div>
       {action}
     </header>
@@ -122,7 +135,7 @@ function GlobalTable({ entries }: { entries: GlobalLeaderboardEntry[] }) {
               <td>
                 {copy.leaderboards.global.contributors(entry.contributorCount)}
               </td>
-              <td>{String(entry.score)}</td>
+              <td>{formatScore(entry.score)}</td>
             </tr>
           ))}
         </tbody>
@@ -177,7 +190,7 @@ function PersonalTable({ entries }: { entries: PersonalLeaderboardEntry[] }) {
               <td>
                 {entry.score === null
                   ? copy.leaderboards.personal.unscored
-                  : String(entry.score)}
+                  : formatScore(entry.score)}
               </td>
             </tr>
           ))}
@@ -285,6 +298,7 @@ export function GlobalLeaderboardPage() {
         title={copy.routes.globalTitle}
         eyebrow={copy.routes.globalEyebrow}
         summary={copy.leaderboards.global.summary}
+        scoreSummary={copy.leaderboards.global.scoreSummary}
         scoreHelp={copy.leaderboards.global.scoreHelp}
       />
       <QueryState
@@ -340,6 +354,7 @@ export function PersonalLeaderboardPage() {
         title={copy.routes.personalRanking}
         eyebrow={copy.leaderboards.personal.eyebrow}
         summary={copy.leaderboards.personal.summary}
+        scoreSummary={copy.leaderboards.personal.scoreSummary}
         scoreHelp={copy.leaderboards.personal.scoreHelp}
         action={
           <label className={styles.historyToggle}>

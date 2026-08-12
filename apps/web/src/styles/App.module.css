@@ -53,12 +53,13 @@
 }
 
 .header nav {
-  overflow-x: auto;
+  overflow: visible;
   margin-left: auto;
 }
 
-.header ul {
+.header nav > ul {
   display: flex;
+  align-items: center;
   gap: var(--space-4);
   margin: 0;
   padding: var(--space-2);
@@ -69,6 +70,71 @@
   color: var(--color-muted);
   text-decoration: none;
   white-space: nowrap;
+}
+
+.navDisclosure {
+  position: relative;
+}
+
+.navDisclosure > button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.navDisclosure > button:hover,
+.navDisclosure > button[aria-expanded="true"],
+.navDisclosure > .navDisclosureActive {
+  color: var(--color-text);
+}
+
+.navDisclosurePanel {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  right: 0;
+  display: grid;
+  min-width: 13rem;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-raised);
+  list-style: none;
+}
+
+.navDisclosurePanel a {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-small);
+}
+
+.navDisclosurePanel a:hover,
+.navDisclosurePanel a[aria-current="page"] {
+  background: var(--color-surface);
+  text-decoration: none;
+}
+
+.profileMenuTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.profileMenuTrigger .avatar,
+.profileMenuTrigger .avatarFallback {
+  width: 2rem;
+  flex-basis: 2rem;
 }
 
 .header nav a[aria-current="page"] {
@@ -89,7 +155,7 @@
 .main {
   width: min(100% - 2rem, var(--content-width));
   margin-inline: auto;
-  padding-block: clamp(2.5rem, 7vw, 7rem);
+  padding-block: clamp(1.5rem, 4vw, 3rem);
 }
 
 .footer {
@@ -289,34 +355,21 @@
 }
 
 .profileStatus {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
   width: min(100% - 2rem, var(--content-width));
   margin-inline: auto;
-  padding-block: var(--space-3);
+  padding-block: var(--space-2);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-muted);
   font-size: 0.875rem;
 }
 
-.profileIdentity,
-.profileStatus > div,
-.profileIdentity > div {
+.profileStatus a {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-}
-
-.profileIdentity > div {
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 0;
-}
-
-.profileIdentity strong {
-  color: var(--color-text);
+  justify-content: space-between;
+  gap: var(--space-4);
+  color: inherit;
+  text-decoration: none;
 }
 
 .statusBadge {
@@ -328,12 +381,12 @@
 
 .libraryPage {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .recommendationsPage {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .recommendationsHeader {
@@ -444,7 +497,7 @@
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .libraryHeader h1 {
@@ -480,6 +533,51 @@
 .syncDetails dd,
 .libraryFacts dd {
   margin: 0;
+}
+
+.libraryFilters {
+  display: grid;
+  grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr)) auto;
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+
+.libraryFilters label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.libraryFilters input,
+.libraryFilters select {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.infoDisclosure {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.infoDisclosure summary {
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.infoDisclosure p {
+  margin-block: var(--space-2) 0;
 }
 
 .privateGuidance,
@@ -544,7 +642,7 @@
 
 .leaderboardPage {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .leaderboardHeader {
@@ -640,7 +738,7 @@
 
 .comparePage {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .compareHeader {
@@ -648,13 +746,42 @@
 }
 
 .compareHeader h1 {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.libraryHeader h1,
+.recommendationsHeader h1,
+.leaderboardHeader h1,
+.compareHeader h1,
+.settingsHeader h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.compareHeader .eyebrow {
+  margin-bottom: var(--space-2);
+}
+
+.compareHeader .lede {
+  margin-bottom: var(--space-2);
 }
 
 .irreversible {
-  padding: var(--space-4);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
   border-left: 3px solid var(--color-accent);
   background: var(--color-surface);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.expiryWarning {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-danger);
+  background: var(--color-surface);
+  color: var(--color-danger);
   font-weight: 700;
 }
 
@@ -681,6 +808,12 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-4);
+}
+
+.comparisonCard > .artwork,
+.comparisonCard > .artworkFallback {
+  max-height: 13rem;
+  aspect-ratio: 16 / 7;
 }
 
 .comparisonCard {
@@ -722,7 +855,6 @@
 }
 
 .comparisonCardBody span,
-.shortcutHelp,
 .comparisonStatus {
   color: var(--color-muted);
 }
@@ -764,7 +896,6 @@ kbd {
   text-align: center;
 }
 
-.shortcutHelp,
 .comparisonRecovery {
   padding: var(--space-6);
   border: 1px solid var(--color-border);
@@ -772,12 +903,28 @@ kbd {
   background: var(--color-surface);
 }
 
-.shortcutHelp h2 {
-  font-size: 1rem;
-}
-
 .comparisonRecovery {
   max-width: 48rem;
+}
+
+.comparisonDetails {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.comparisonDetails summary {
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.comparisonDetails > p,
+.comparisonDetails > .comparisonMeta {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
 }
 
 .comparisonRecovery > .secondaryButton {
@@ -786,7 +933,7 @@ kbd {
 
 .settingsPage {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .settingsHeader {
@@ -914,7 +1061,7 @@ kbd {
     overflow-x: visible;
   }
 
-  .header ul {
+  .header nav > ul {
     flex-wrap: wrap;
     padding-left: 0;
   }
@@ -930,6 +1077,10 @@ kbd {
   .libraryHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .libraryFilters {
+    grid-template-columns: 1fr 1fr;
   }
 
   .leaderboardHeader {
@@ -955,10 +1106,8 @@ kbd {
 }
 
 @media (max-width: 520px) {
-  .profileStatus,
-  .profileStatus > div {
-    align-items: flex-start;
-    flex-direction: column;
+  .libraryFilters {
+    grid-template-columns: 1fr;
   }
   .pairPreview {
     grid-template-columns: 1fr;

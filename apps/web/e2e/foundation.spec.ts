@@ -96,3 +96,66 @@ test("an invalid callback offers a safe retry", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Try again" })).toBeEnabled();
 });
+
+test("grouped navigation is keyboard-operable and product content starts in the initial viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await configure(page);
+  await page.route("**/api/v1/leaderboards/global**", (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            rank: 1,
+            appId: 400,
+            name: "Portal",
+            artworkUrl: null,
+            status: "RANKED",
+            contributorCount: 12,
+            score: 42.125,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await page.goto("/");
+
+  const leaderboards = page.getByRole("button", { name: "Leaderboards" });
+  await leaderboards.focus();
+  await page.keyboard.press("Enter");
+  await expect(leaderboards).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("link", { name: "My ranking" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(leaderboards).toBeFocused();
+  await expect(leaderboards).toHaveAttribute("aria-expanded", "false");
+
+  await leaderboards.hover();
+  const globalLink = page
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("link", { name: "Global", exact: true });
+  await globalLink.hover();
+  await expect(globalLink).toBeVisible();
+  await globalLink.click();
+  await expect(
+    page.getByRole("heading", { name: "Global leaderboard" }),
+  ).toBeVisible();
+
+  await page.goto("/");
+  await leaderboards.click();
+  await page
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("link", { name: "Global", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Global leaderboard" }),
+  ).toBeVisible();
+  await expect(page.getByRole("row", { name: /Portal/ })).toBeVisible();
+  expect(
+    await page.getByRole("row", { name: /Portal/ }).evaluate((row) => {
+      const bounds = row.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.top < window.innerHeight;
+    }),
+  ).toBe(true);
+});
