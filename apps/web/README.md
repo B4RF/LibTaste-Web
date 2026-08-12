@@ -1,8 +1,8 @@
 # LibTaste web application
 
 React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, Steam
-profile and library management, pairwise game comparisons, personal and global game leaderboards, and account/session
-settings.
+profile and library management, pairwise game comparisons, personalized recommendations, personal and global game
+leaderboards, and account/session settings.
 
 ## Development
 
@@ -81,6 +81,17 @@ view with a first-page historical request. Both leaderboards:
 - distinguish loading, empty, rate-limited, retry, and terminal states;
 - render lazy artwork, status, evidence counts, and transport score precision in responsive semantic tables; and
 - explain Provisional and Ranked status while keeping personal and global score meanings explicitly non-comparable.
+
+## Game recommendations
+
+The protected Recommendations route requests the API-default personalized result set without pagination or a count
+override. It preserves server order and explains predicted personal rank, similar-game and anonymous-player sources,
+applicable support counts, and item seed games without exposing raw model scores or other-user evidence.
+
+Successful results remain fresh in the private user-scoped cache for 60 seconds. Completed comparisons, library
+eligibility changes, and successful library synchronization invalidate them; session clearing cancels and removes them
+with other protected data. Distinct successful empty states explain insufficient personal evidence, limited rating
+variation, insufficient community evidence, or an exhausted eligible catalog.
 
 ## Account and session settings
 

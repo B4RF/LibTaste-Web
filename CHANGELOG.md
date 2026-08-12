@@ -20,3 +20,5 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
   opaque cursor pagination, stable retry behavior, and distinct score and evidence explanations.
 - Added protected account/session settings for current and all-device logout, safeguarded permanent account deletion,
   uncertain-result recovery, and centralized user-state cleanup that retains public leaderboard data.
+- Added protected personalized game recommendations with plain-language model evidence, safe Steam links, distinct
+  empty and recovery states, private 60-second caching, and comparison/library-driven invalidation.

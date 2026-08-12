@@ -190,6 +190,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calculate personalized recommendations for the authenticated user
+         * @description Calculates confidence-weighted collaborative recommendations on demand. The predicted percentile is the candidate's estimated position within the current user's own normalized ranking; it is not confidence, dislike, purchase likelihood, or a leaderboard score. No raw rating or other-user evidence is returned.
+         */
+        get: operations["getMyGameRecommendations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/leaderboards/global": {
         parameters: {
             query?: never;
@@ -406,6 +426,46 @@ export interface components {
         GlobalLeaderboardPage: {
             items: components["schemas"]["GlobalLeaderboardEntry"][];
             nextCursor?: string | null;
+        };
+        /**
+         * @description The qualifying collaborative model or models used for this candidate.
+         * @enum {string}
+         */
+        RecommendationSource: "ITEM" | "USER" | "BLENDED";
+        RecommendationBecauseOf: {
+            /** Format: int64 */
+            appId: number;
+            name: string;
+            /** Format: uri */
+            artworkUrl: string;
+            /** @description Positive overlap-shrunken game similarity rounded to six decimal places. */
+            adjustedSimilarity: number;
+        };
+        RecommendationEntry: {
+            /** Format: int64 */
+            appId: number;
+            name: string;
+            /** Format: uri */
+            artworkUrl: string;
+            source: components["schemas"]["RecommendationSource"];
+            /** @description Nearest whole-number percentage of the user's recommendation-usable normalized ratings strictly below the candidate's unrounded predicted score; this is not confidence or purchase likelihood. */
+            predictedRankPercentile: number;
+            neighborSupportCount: number;
+            seedSupportCount: number;
+            /** @description Present only for ITEM and BLENDED results, ordered by positive scoring contribution. */
+            becauseOf?: components["schemas"]["RecommendationBecauseOf"][];
+            /** @description Present only for ITEM and BLENDED results and includes seeds omitted from becauseOf. */
+            becauseOfTotalCount?: number;
+        };
+        RecommendationResponse: {
+            /** @enum {string} */
+            status: "OK" | "INSUFFICIENT_DATA" | "NO_CANDIDATES";
+            /**
+             * @description Present only when status is INSUFFICIENT_DATA.
+             * @enum {string}
+             */
+            reason?: "NOT_ENOUGH_PERSONAL_RATINGS" | "NO_RATING_VARIATION" | "NOT_ENOUGH_COMMUNITY_DATA";
+            recommendations: components["schemas"]["RecommendationEntry"][];
         };
         /** @description RFC 9457 Problem Details with request correlation. */
         Problem: {
@@ -741,6 +801,33 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+        };
+    };
+    getMyGameRecommendations: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recommendations or an explicit successful empty state calculated from current committed evidence. */
+            200: {
+                headers: {
+                    /** @description Private client cache bound for every successful response. */
+                    "Cache-Control"?: "private, max-age=60";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationResponse"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
         };
     };
     getGlobalGameLeaderboard: {

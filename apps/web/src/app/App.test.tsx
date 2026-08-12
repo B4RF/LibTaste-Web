@@ -27,6 +27,39 @@ function renderRoute(
 }
 
 describe("application routes", () => {
+  it("places the protected Recommendations route immediately after Compare", async () => {
+    const result = renderRoute("/");
+    const navigation = screen.getByRole("navigation", {
+      name: "Primary navigation",
+    });
+    const links = within(navigation).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual([
+      "Compare",
+      "Recommendations",
+      "My Ranking",
+      "Library",
+      "Settings",
+      "Global",
+    ]);
+    expect(links[1]).toHaveAttribute("href", "/recommendations");
+    expect(await axe(result.container)).toHaveNoViolations();
+  });
+
+  it("guards the Recommendations route without requesting private data", async () => {
+    document.cookie = "libtaste_csrf=; Max-Age=0; path=/";
+    const fetcher = vi.fn<typeof fetch>();
+    renderRoute("/recommendations", new SessionManager(config, { fetcher }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in to continue" }),
+    ).toBeVisible();
+    expect(screen.queryByText("Personal discovery")).not.toBeInTheDocument();
+    expect(fetcher).not.toHaveBeenCalledWith(
+      expect.stringContaining("/me/recommendations"),
+      expect.anything(),
+    );
+  });
+
   it("renders an accessible public landing page with two truthful actions at 360px", async () => {
     Object.defineProperty(window, "innerWidth", {
       configurable: true,

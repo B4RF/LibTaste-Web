@@ -14,6 +14,7 @@ import {
 } from "../features/leaderboards/LeaderboardPage";
 import { LibraryPage } from "../features/library/LibraryPage";
 import { ProfileSyncStatus } from "../features/library/ProfileSyncStatus";
+import { RecommendationsPage } from "../features/recommendations/RecommendationsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import styles from "../styles/App.module.css";
 import { LandingPage } from "./LandingPage";
@@ -22,6 +23,10 @@ const protectedPages = [
   {
     path: "/compare",
     label: copy.navigation.compare,
+  },
+  {
+    path: "/recommendations",
+    label: copy.navigation.recommendations,
   },
   {
     path: "/leaderboard/me",
@@ -110,6 +115,8 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
               <ProtectedRoute config={config}>
                 {page.path === "/compare" ? (
                   <ComparePage />
+                ) : page.path === "/recommendations" ? (
+                  <RecommendationsPage />
                 ) : page.path === "/leaderboard/me" ? (
                   <PersonalLeaderboardPage />
                 ) : page.path === "/library" ? (
@@ -131,18 +138,21 @@ export function ApplicationProviders({
   config,
   children,
   session: suppliedSession,
+  queryClient: suppliedQueryClient,
 }: {
   config: RuntimeConfig;
   children: ReactNode;
   session?: SessionManager;
+  queryClient?: QueryClient;
 }) {
-  const queryClient = useMemo(
+  const createdQueryClient = useMemo(
     () =>
       new QueryClient({
         defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
       }),
     [],
   );
+  const queryClient = suppliedQueryClient ?? createdQueryClient;
   const session = useMemo(
     () => suppliedSession ?? new SessionManager(config),
     [config, suppliedSession],

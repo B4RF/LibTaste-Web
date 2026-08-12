@@ -97,3 +97,4 @@ the validator checks declared relationships, not semantic meaning.
 | [SPEC-0003](./0003-pairwise-comparisons/spec.md)                  | Pairwise game comparisons                   | Verified |
 | [SPEC-0004](./0004-game-leaderboards/spec.md)                     | Personal and global game leaderboards       | Verified |
 | [SPEC-0005](./0005-account-session-settings/spec.md)              | Account and session settings                | Verified |
+| [SPEC-0006](./0006-game-recommendations/spec.md)                   | Personalized game recommendations           | Verified |

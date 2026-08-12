@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { Artwork } from "../../components/Artwork";
 import { copy } from "../../content/copy";
 import styles from "../../styles/App.module.css";
+import { recommendationQueryKey } from "../recommendations/recommendationApi";
 import {
   getProfile,
   getSyncJob,
@@ -60,6 +61,9 @@ function AuthenticatedProfileSyncStatus() {
       }
       if (nextJob.status === "SUCCEEDED") {
         void queryClient.invalidateQueries({ queryKey: libraryQueryKey });
+        void queryClient.invalidateQueries({
+          queryKey: recommendationQueryKey,
+        });
       }
     },
     [queryClient],

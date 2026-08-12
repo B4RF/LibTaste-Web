@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiProblem } from "../../api/problem";
@@ -7,6 +7,7 @@ import { Artwork } from "../../components/Artwork";
 import { ProblemNotice } from "../../components/ProblemNotice";
 import { copy } from "../../content/copy";
 import styles from "../../styles/App.module.css";
+import { recommendationQueryKey } from "../recommendations/recommendationApi";
 import {
   getNextComparison,
   submitComparisonResult,
@@ -164,6 +165,7 @@ function AllocationRecovery({
 
 export function ComparePage() {
   const { session } = useAuth();
+  const queryClient = useQueryClient();
   const [allocationAttempt, setAllocationAttempt] = useState(0);
   const [state, setState] = useState<SubmissionState>({ kind: "allocating" });
   const [now, setNow] = useState(Date.now);
@@ -213,6 +215,9 @@ export function ComparePage() {
           comparison.comparisonId,
           outcome,
         );
+        await queryClient.invalidateQueries({
+          queryKey: recommendationQueryKey,
+        });
         setState({ kind: "recorded", comparison, result });
         advanceTimer.current = window.setTimeout(requestCurrent, 450);
       } catch (error) {
@@ -223,7 +228,7 @@ export function ComparePage() {
         );
       }
     },
-    [requestCurrent, session],
+    [queryClient, requestCurrent, session],
   );
 
   const choose = useCallback(
