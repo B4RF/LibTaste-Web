@@ -22,3 +22,7 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
   uncertain-result recovery, and centralized user-state cleanup that retains public leaderboard data.
 - Added protected personalized game recommendations with plain-language model evidence, safe Steam links, distinct
   empty and recovery states, private 60-second caching, and comparison/library-driven invalidation.
+
+### Fixed
+
+- Stabilized coverage verification for the 100-game library accessibility stress test on slower CI runners.

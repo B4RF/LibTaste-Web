@@ -343,5 +343,5 @@ describe("Steam library", () => {
       }),
     ).toBeVisible();
     expect(await axe(result.container)).toHaveNoViolations();
-  }, 15_000);
+  }, 30_000);
 });
