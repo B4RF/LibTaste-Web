@@ -151,7 +151,7 @@ describe("SettingsPage", () => {
       "settings-csrf",
     );
 
-    await user.click(screen.getByRole("link", { name: "Library" }));
+    await user.click(screen.getByRole("link", { name: "Compare" }));
     expect(
       await screen.findByRole("heading", { name: "Sign in to continue" }),
     ).toBeVisible();

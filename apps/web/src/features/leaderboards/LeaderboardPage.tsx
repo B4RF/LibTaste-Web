@@ -9,13 +9,14 @@ import styles from "../../styles/App.module.css";
 import {
   getGlobalLeaderboardPage,
   getPersonalLeaderboardPage,
+  personalLeaderboardQueryKey,
   type GlobalLeaderboardEntry,
   type PersonalLeaderboardEntry,
 } from "./leaderboardApi";
 
 const globalQueryKey = ["leaderboard", "global"] as const;
 const personalQueryKey = (includeHistorical: boolean) =>
-  ["leaderboard", "personal", includeHistorical] as const;
+  [...personalLeaderboardQueryKey, includeHistorical] as const;
 const scoreFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 });

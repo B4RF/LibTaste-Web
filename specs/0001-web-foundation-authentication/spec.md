@@ -39,9 +39,10 @@ a publicly deployed static container using environment-specific, non-secret runt
 
 - **FR-001:** The application shall provide public routes for the landing page and global leaderboard entry point, a
   callback route at `/auth/callback`, and protected routes for Compare, Recommendations, My Ranking, Library, and
-  Account & Security. Primary navigation shall expose Compare, Recommendations, and Library directly, group My Ranking
-  and Global beneath a Leaderboards disclosure, and expose Steam-profile and Account & Security links beneath an
-  authenticated profile disclosure.
+  Account & Security. Primary navigation shall expose Compare and Recommendations directly, group My Ranking and Global
+  beneath a Leaderboards disclosure, and expose the external Steam-profile link first, Library second, and Account &
+  Security last beneath an authenticated profile disclosure. Moving Library shall not change its `/library` route or
+  prevent feature recovery actions from linking to it directly.
 - **FR-002:** The landing page shall explain pairwise game ranking and Steam authentication and shall offer only real
   product actions: signing in through Steam and opening the public global leaderboard.
 - **FR-003:** Starting authentication shall generate a cryptographically random PKCE verifier, derive an S256 challenge,
@@ -165,7 +166,9 @@ internal destination preserved
 **Given** a visitor or authenticated user is using pointer, touch, or keyboard input
 **When** they open Leaderboards or the authenticated profile disclosure
 **Then** the available route links can be reached and activated without hover, the disclosure state is announced, and
-Escape returns focus safely to its trigger
+Escape returns focus safely to its trigger; for an authenticated user, the profile disclosure orders the Steam-profile
+link first, Library second, and Account & Security last, with Library omitted as a primary-navigation peer of Compare
+and Recommendations
 
 ### AC-011: Open a compact product route
 
@@ -198,7 +201,8 @@ route or allow credentialed API requests consistently with the API's origin and 
 
 ## Open questions and assumptions
 
-None.
+- Assumption for approval: Library remains a first-class protected route and recovery destination; only its routine
+  navigation placement and explicit second position in the authenticated profile disclosure change.
 
 ## Implementation notes
 
@@ -224,7 +228,7 @@ None.
 | AC-007 | Browser test | `apps/web/src/bootstrap.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
 | AC-008 | Container verification | `apps/web/scripts/verify-container.mjs` | Passed 2026-08-10 |
 | AC-009 | Script verification | `apps/web/scripts/check-openapi.mjs` | Passed 2026-08-10 |
-| AC-010 | Component/browser navigation tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts`, `apps/web/src/components/Artwork.test.tsx` | Passed 2026-08-13 |
+| AC-010 | Component/browser navigation tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/library.spec.ts` — Steam profile, Library, and Account & Security render in the required order while Library remains outside primary navigation | Passed 2026-08-13 |
 | AC-011 | Browser layout test | `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
 | NFR-002 | Automated accessibility and viewport tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
 | NFR-003 | Browser project configuration | `apps/web/playwright.config.ts`, `apps/web/package.json#browserslist` | Passed 2026-08-10 |
@@ -248,6 +252,11 @@ None.
 | Focused profile-avatar and application navigation component tests | Passed (12 tests) | 2026-08-13 |
 | Grouped-navigation Playwright journey in Chromium | Passed | 2026-08-13 |
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 93 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-13 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 100 tests, coverage (90.43% statements, 84.52% branches, 92.17% functions, 92.59% lines), OpenAPI drift check, and production build | 2026-08-13 |
+| Full Playwright matrix | Passed: 105 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-13 |
+| `node scripts/validate-specs.mjs` | Passed after verification evidence and lifecycle update | 2026-08-13 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 101 tests, coverage (90.43% statements, 84.52% branches, 92.17% functions, 92.59% lines), OpenAPI drift check, and production build | 2026-08-13 |
+| Full Playwright matrix | Passed: 105 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-13 |
 
 ## Completion checklist
 

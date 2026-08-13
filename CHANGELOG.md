@@ -8,8 +8,14 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ### Changed
 
+- Changed Compare keyboard shortcuts to the gamer-familiar WASD layout: W for draw, A for left, S for skip, and D for
+  right.
 - Grouped personal/global rankings under an accessible Leaderboards disclosure and moved Steam profile plus account
-  controls into an authenticated profile disclosure.
+  controls into an authenticated profile disclosure, with Library grouped there as another account-scoped destination.
+- Reduced the visual prominence of Compare's per-game Exclude actions so the more frequent Draw and Skip outcomes stay
+  dominant.
+- Ordered the profile disclosure as Steam profile, Library, then Account & Security.
+- Enlarged and uncropped Compare artwork while moving compact Draw and Skip controls into the center of the matchup.
 - Added server-backed, URL-addressable Library filters for game name, effective eligibility, and explicit eligibility
   override while retaining filters across opaque cursor pages.
 - Made product routes more compact, kept Compare stable while the next pair loads, progressively disclosed secondary
@@ -17,6 +23,9 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ### Added
 
+- Added one-click exclusion for either game on Compare, with server-confirmed eligibility, no-rating matchup
+  retirement, automatic advancement, and safe partial-failure retries.
+- Added exact Steam store links from available Library artwork and quiet per-game links in Compare matchups.
 - Added the responsive React/Vite web foundation with public and protected routes.
 - Added Steam authorization-code PKCE, in-memory access-token rotation, safe Problem Details, and signed-out recovery.
 - Added generated OpenAPI types with drift verification, cross-browser tests, coverage gates, and CI verification.

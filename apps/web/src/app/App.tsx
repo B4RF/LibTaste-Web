@@ -61,7 +61,7 @@ const protectedPages = [
 ] as const;
 
 const directNavigationPages = protectedPages.filter(({ path }) =>
-  ["/compare", "/recommendations", "/library"].includes(path),
+  ["/compare", "/recommendations"].includes(path),
 );
 
 function NavigationDisclosure({
@@ -160,7 +160,7 @@ function AuthenticatedProfileNavigationItem() {
     <li>
       <NavigationDisclosure
         label={copy.navigation.profile(name)}
-        active={location.pathname === "/settings"}
+        active={["/library", "/settings"].includes(location.pathname)}
         buttonContent={
           <span className={styles.profileMenuTrigger}>
             <Artwork kind="avatar" src={profile?.avatarUrl} name={name} />
@@ -182,6 +182,11 @@ function AuthenticatedProfileNavigationItem() {
                 </a>
               </li>
             ) : null}
+            <li>
+              <NavLink to="/library" onClick={close}>
+                {copy.navigation.library}
+              </NavLink>
+            </li>
             <li>
               <NavLink to="/settings" onClick={close}>
                 {copy.navigation.settings}

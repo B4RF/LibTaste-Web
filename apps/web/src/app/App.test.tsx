@@ -36,7 +36,6 @@ describe("application routes", () => {
     expect(links.map((link) => link.textContent)).toEqual([
       "Compare",
       "Recommendations",
-      "Library",
     ]);
     expect(links[1]).toHaveAttribute("href", "/recommendations");
     const leaderboards = within(navigation).getByRole("button", {
@@ -202,19 +201,22 @@ describe("application routes", () => {
               createdAt: "2026-08-10T08:00:00Z",
               expiresAt: "2026-08-11T08:00:00Z",
             }
-          : {
-              steamId64: "76561198000000000",
-              displayName: "Test Pilot",
-              libraryState: "AVAILABLE",
-              synchronization: {
-                jobId: "11111111-1111-4111-8111-111111111111",
-                trigger: "LOGIN",
-                status: "PENDING",
-                attemptCount: 0,
-                requestedAt: "2026-08-10T08:00:00Z",
-                runAfter: "2026-08-10T08:00:00Z",
-              },
-            };
+          : url.endsWith("/me/library")
+            ? { items: [] }
+            : {
+                steamId64: "76561198000000000",
+                displayName: "Test Pilot",
+                profileUrl: "https://steamcommunity.com/id/test-pilot",
+                libraryState: "AVAILABLE",
+                synchronization: {
+                  jobId: "11111111-1111-4111-8111-111111111111",
+                  trigger: "LOGIN",
+                  status: "PENDING",
+                  attemptCount: 0,
+                  requestedAt: "2026-08-10T08:00:00Z",
+                  runAfter: "2026-08-10T08:00:00Z",
+                },
+              };
       return new Response(JSON.stringify(body), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -222,6 +224,21 @@ describe("application routes", () => {
     });
     renderRoute("/compare", new SessionManager(config, { fetcher }));
     expect(await screen.findByText("Synchronization pending")).toBeVisible();
+    const profileButton = screen.getByRole("button", {
+      name: "Test Pilot profile",
+    });
+    await userEvent.click(profileButton);
+    expect(
+      within(profileButton.closest("li")!)
+        .getAllByRole("link")
+        .map((link) => link.textContent?.trim()),
+    ).toEqual(["Open Steam profile ↗", "Library", "Account & Security"]);
+    const library = screen.getByRole("link", { name: "Library" });
+    expect(library).toHaveAttribute("href", "/library");
+    await userEvent.click(library);
+    expect(
+      await screen.findByRole("heading", { name: "Steam library" }),
+    ).toBeVisible();
     await userEvent.click(
       screen.getByRole("button", { name: "Test Pilot profile" }),
     );

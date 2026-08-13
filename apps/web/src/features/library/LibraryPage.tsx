@@ -11,6 +11,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { Artwork } from "../../components/Artwork";
 import { ProblemNotice } from "../../components/ProblemNotice";
 import { copy } from "../../content/copy";
+import { steamStoreUrl } from "../../steam";
 import styles from "../../styles/App.module.css";
 import { recommendationQueryKey } from "../recommendations/recommendationApi";
 import {
@@ -78,7 +79,14 @@ function LibraryEntry({ item }: { item: LibraryItem }) {
 
   return (
     <article className={styles.libraryCard} aria-label={item.name}>
-      <Artwork src={item.artworkUrl} name={item.name} />
+      <Artwork
+        src={item.artworkUrl}
+        name={item.name}
+        link={{
+          href: steamStoreUrl(item.appId),
+          label: copy.library.steamLinkLabel(item.name),
+        }}
+      />
       <div className={styles.libraryCardBody}>
         <h2>{item.name}</h2>
         <dl className={styles.libraryFacts}>
