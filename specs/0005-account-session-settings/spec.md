@@ -3,15 +3,15 @@
 Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-10
+Last updated: 2026-08-12
 Supersedes: None  
 Superseded by: None
 
 ## Problem
 
 Authenticated users need explicit control over the current browser session, all LibTaste sessions, and permanent
-account deletion. Without a settings experience, security and privacy capabilities already provided by the API are
-inaccessible, and stale user-specific state could remain visible in the browser after a destructive action.
+account deletion. Without an Account & Security experience, security and privacy capabilities already provided by the
+API are inaccessible, and stale user-specific state could remain visible in the browser after a destructive action.
 
 ## Desired outcome
 
@@ -21,7 +21,8 @@ the public application without affecting public global leaderboard access.
 
 ## Scope
 
-- Authenticated Settings route and concise explanation of each session/account action.
+- Authenticated Account & Security page at the stable `/settings` route and concise explanation of each session/account
+  action.
 - Current-session logout and all-session logout.
 - Permanent account deletion with explicit impact disclosure and typed confirmation.
 - Pending, success, authentication-expired, rate-limited, recoverable-failure, and uncertain-result handling.
@@ -35,8 +36,9 @@ the public application without affecting public global leaderboard access.
 
 ## Functional requirements
 
-- **FR-001:** Settings shall require authentication and present distinct actions for Log out this device, Log out all
-  devices, and Delete account, with consequences explained before activation.
+- **FR-001:** Account & Security shall require authentication and present distinct actions for Log out this device, Log
+  out all devices, and Delete account, with consequences explained before activation. Navigation and the page heading
+  shall use Account & Security while the existing `/settings` URL remains valid.
 - **FR-002:** Log out this device shall call `POST /auth/logout` with the authenticated and CSRF-protected web request,
   prevent duplicate submissions, and clear local authenticated state whether the API confirms success or reports that
   the session is already unauthenticated.
@@ -49,9 +51,9 @@ the public application without affecting public global leaderboard access.
   text shall be reset whenever the dialog closes or after a failed attempt that invalidates authentication.
 - **FR-006:** Confirmed deletion shall call `DELETE /me` exactly once while pending. A `204` response shall clear all
   authenticated and user-specific browser state and navigate to the public landing page with a completion message.
-- **FR-007:** A recoverable logout or deletion failure shall keep the user on Settings, preserve authenticated state when
-  still valid, re-enable a safe retry, and display Problem Details support information without claiming the action
-  succeeded.
+- **FR-007:** A recoverable logout or deletion failure shall keep the user on Account & Security, preserve authenticated
+  state when still valid, re-enable a safe retry, and display Problem Details support information without claiming the
+  action succeeded.
 - **FR-008:** When the result of deletion is uncertain because the connection ends after submission, the app shall not
   automatically repeat the destructive request; it shall attempt ordinary session recovery and explain whether the
   account appears deleted or the user must explicitly retry.
@@ -118,6 +120,13 @@ an explicit retry when the account remains authenticated
 **When** the user navigates backward to a protected URL  
 **Then** the route guard shows the signed-out experience without rendering cached protected content
 
+### AC-008: Reach Account & Security from the profile disclosure
+
+**Given** an authenticated user opens the profile disclosure
+**When** they activate Account & Security
+**Then** the protected `/settings` route opens with Account & Security as its page heading and all existing session and
+account actions remain available
+
 ## Interfaces and data
 
 - Consumes `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, and `DELETE /api/v1/me`.
@@ -160,6 +169,7 @@ None.
 | AC-005 | Integration test | `SettingsPage.test.tsx` recoverable Problem Details and explicit retry case | Passed 2026-08-10 |
 | AC-006 | Browser/component test | `SettingsPage.test.tsx`; `settings.spec.ts` connection-end recovery without automatic `DELETE` replay | Passed 2026-08-10 |
 | AC-007 | Browser test | `SettingsPage.test.tsx`; `settings.spec.ts` protected navigation after session clearing | Passed 2026-08-10 |
+| AC-008 | Component/browser navigation test | `apps/web/src/app/App.test.tsx`, `SettingsPage.test.tsx`, `apps/web/e2e/settings.spec.ts` | Passed 2026-08-12 |
 | NFR-001 | Automated accessibility test | `SettingsPage.test.tsx` axe audit, keyboard focus restoration, and exact typed confirmation; five-project responsive browser journey | Passed 2026-08-10 |
 | NFR-002 | Request-security test | `client.test.ts`; `settings.spec.ts` bearer, credential, CSRF, and one-request assertions | Passed 2026-08-10 |
 | NFR-003 | Browser suite review | `AuthContext.test.tsx`, `SettingsPage.test.tsx`, and `settings.spec.ts` cover cardinality, cancellation, cache isolation, stale navigation, and uncertain recovery | Passed 2026-08-10 |
@@ -172,6 +182,8 @@ None.
 | `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 74 tests, coverage (89.59% statements, 83.11% branches, 91.42% functions, 91.76% lines), OpenAPI drift check, and production build | 2026-08-10 |
 | `npm.cmd run e2e --workspace apps/web -- --workers=1` | Passed: 80 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-10 |
+| `npm.cmd run verify` | Passed: 92 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-12 |
+| Profile-to-Account & Security journeys across five Playwright projects | Passed | 2026-08-12 |
 
 ## Completion checklist
 

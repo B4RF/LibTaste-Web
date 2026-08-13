@@ -168,7 +168,8 @@ test("personal leaderboard reloads from the first page for historical games", as
   await page.evaluate(() => {
     document.cookie = "libtaste_csrf=e2e-csrf; path=/";
   });
-  await page.getByRole("link", { name: "My Ranking" }).click();
+  await page.getByRole("button", { name: "Leaderboards" }).click();
+  await page.getByRole("link", { name: "My ranking" }).click();
   const portalRow = page.getByRole("row", { name: /Portal/ });
   await expect(portalRow).toContainText("Not yet scored");
   await expect(portalRow).toContainText("2 comparisons");

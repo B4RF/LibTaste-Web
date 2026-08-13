@@ -4,7 +4,8 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ApiProblem } from "../../api/problem";
 import { useAuth } from "../../auth/AuthContext";
 import { Artwork } from "../../components/Artwork";
@@ -17,6 +18,7 @@ import {
   requestSync,
   updateEligibility,
   type EligibilityBehavior,
+  type LibraryFilters,
   type LibraryItem,
   type LibraryPageData,
   type MeProfile,
@@ -65,8 +67,8 @@ function LibraryEntry({ item }: { item: LibraryItem }) {
       updateEligibility(session, item.appId, behavior),
     onSuccess: (nextItem) => {
       setFailedBehavior(undefined);
-      queryClient.setQueryData<InfiniteData<LibraryPageData>>(
-        libraryQueryKey,
+      queryClient.setQueriesData<InfiniteData<LibraryPageData>>(
+        { queryKey: libraryQueryKey },
         (current) => replaceItem(current, nextItem),
       );
       void queryClient.invalidateQueries({ queryKey: recommendationQueryKey });
@@ -153,17 +155,78 @@ export function LibraryPage() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const profileQuery = useProfileQuery();
+  const [searchParameters, setSearchParameters] = useSearchParams();
+  const intendedSearchParameters = useRef(
+    new URLSearchParams(searchParameters),
+  );
+  useEffect(() => {
+    intendedSearchParameters.current = new URLSearchParams(searchParameters);
+  }, [searchParameters]);
   const [pageRequested, setPageRequested] = useState(false);
+  const nameParameter = searchParameters.get("name") ?? "";
+  const effectiveParameter = searchParameters.get("effectivelyEligible");
+  const overrideParameter = searchParameters.get("eligibilityOverride");
+  const [nameInput, setNameInput] = useState(nameParameter);
+  const [previousNameParameter, setPreviousNameParameter] =
+    useState(nameParameter);
+  if (previousNameParameter !== nameParameter) {
+    setPreviousNameParameter(nameParameter);
+    setNameInput(nameParameter);
+  }
   const pageRequestPending = useRef(false);
+  const filters = useMemo<LibraryFilters>(
+    () => ({
+      name: nameParameter || undefined,
+      effectivelyEligible:
+        effectiveParameter === "true"
+          ? true
+          : effectiveParameter === "false"
+            ? false
+            : undefined,
+      eligibilityOverride: ["DEFAULT", "INCLUDED", "EXCLUDED"].includes(
+        overrideParameter ?? "",
+      )
+        ? (overrideParameter as EligibilityBehavior)
+        : undefined,
+    }),
+    [effectiveParameter, nameParameter, overrideParameter],
+  );
+  const hasActiveFilters = Boolean(
+    filters.name ||
+    filters.effectivelyEligible !== undefined ||
+    filters.eligibilityOverride,
+  );
+
+  const updateFilter = useCallback(
+    (name: string, value?: string) => {
+      const next = new URLSearchParams(intendedSearchParameters.current);
+      if (value) next.set(name, value);
+      else next.delete(name);
+      intendedSearchParameters.current = next;
+      setPageRequested(false);
+      setSearchParameters(next, { replace: true });
+    },
+    [setSearchParameters],
+  );
+
+  useEffect(() => {
+    const nextName = nameInput.trim();
+    if (nextName === nameParameter) return;
+    const timer = window.setTimeout(
+      () => updateFilter("name", nextName || undefined),
+      300,
+    );
+    return () => window.clearTimeout(timer);
+  }, [nameInput, nameParameter, updateFilter]);
   const unavailable = Boolean(
     profileQuery.data?.libraryState === "UNAVAILABLE" ||
     profileQuery.data?.synchronization?.failureCode === "LIBRARY_UNAVAILABLE",
   );
   const libraryQuery = useInfiniteQuery({
-    queryKey: libraryQueryKey,
+    queryKey: [...libraryQueryKey, filters],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
-      getLibraryPage(session, pageParam, signal),
+      getLibraryPage(session, filters, pageParam, signal),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: profileQuery.isSuccess && !unavailable,
     meta: { scope: "user" },
@@ -206,7 +269,10 @@ export function LibraryPage() {
           <p className={styles.eyebrow}>{copy.library.eyebrow}</p>
           <h1 id="library-title">{copy.routes.library}</h1>
           <p>{copy.library.summary}</p>
-          <p>{copy.library.eligibility.defaultExplanation}</p>
+          <details className={styles.infoDisclosure}>
+            <summary>How eligibility works</summary>
+            <p>{copy.library.eligibility.defaultExplanation}</p>
+          </details>
         </div>
         <button
           type="button"
@@ -235,6 +301,83 @@ export function LibraryPage() {
             </dd>
           </div>
         </dl>
+      ) : null}
+
+      {profileQuery.isSuccess && !unavailable ? (
+        <form
+          className={styles.libraryFilters}
+          aria-label="Library filters"
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <label>
+            <span>{copy.library.filters.name}</span>
+            <input
+              type="search"
+              maxLength={200}
+              value={nameInput}
+              placeholder={copy.library.filters.namePlaceholder}
+              onChange={(event) => setNameInput(event.currentTarget.value)}
+            />
+          </label>
+          <label>
+            <span>{copy.library.filters.effectiveEligibility}</span>
+            <select
+              value={
+                filters.effectivelyEligible === undefined
+                  ? ""
+                  : String(filters.effectivelyEligible)
+              }
+              onChange={(event) =>
+                updateFilter(
+                  "effectivelyEligible",
+                  event.currentTarget.value || undefined,
+                )
+              }
+            >
+              <option value="">{copy.library.filters.all}</option>
+              <option value="true">{copy.library.filters.eligible}</option>
+              <option value="false">{copy.library.filters.notEligible}</option>
+            </select>
+          </label>
+          <label>
+            <span>{copy.library.filters.eligibilityOverride}</span>
+            <select
+              value={filters.eligibilityOverride ?? ""}
+              onChange={(event) =>
+                updateFilter(
+                  "eligibilityOverride",
+                  event.currentTarget.value || undefined,
+                )
+              }
+            >
+              <option value="">{copy.library.filters.all}</option>
+              {Object.entries(behaviorLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={!hasActiveFilters && !nameInput}
+            onClick={() => {
+              const next = new URLSearchParams(
+                intendedSearchParameters.current,
+              );
+              next.delete("name");
+              next.delete("effectivelyEligible");
+              next.delete("eligibilityOverride");
+              intendedSearchParameters.current = next;
+              setNameInput("");
+              setPageRequested(false);
+              setSearchParameters(next, { replace: true });
+            }}
+          >
+            {copy.library.filters.clear}
+          </button>
+        </form>
       ) : null}
 
       {syncMutation.error ? (
@@ -270,7 +413,9 @@ export function LibraryPage() {
         <p className={styles.emptyState}>
           {profileQuery.data?.libraryState === "NOT_SYNCED"
             ? copy.library.notSynchronized
-            : copy.library.empty}
+            : hasActiveFilters
+              ? copy.library.noMatches
+              : copy.library.empty}
         </p>
       ) : (
         <>

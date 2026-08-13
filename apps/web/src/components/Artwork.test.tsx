@@ -18,4 +18,23 @@ describe("Artwork", () => {
     ).toBeVisible();
     expect(screen.queryByAltText("Portal artwork")).not.toBeInTheDocument();
   });
+
+  it("loads an avatar URL that arrives after the profile request", () => {
+    const { rerender } = render(<Artwork kind="avatar" name="Test Pilot" />);
+    expect(
+      screen.getByRole("img", { name: "Test Pilot avatar unavailable" }),
+    ).toBeVisible();
+
+    rerender(
+      <Artwork
+        kind="avatar"
+        name="Test Pilot"
+        src="https://cdn.example.test/avatar.jpg"
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: "Test Pilot avatar" }),
+    ).toHaveAttribute("src", "https://cdn.example.test/avatar.jpg");
+  });
 });

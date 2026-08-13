@@ -10,10 +10,10 @@ export function Artwork({
   name: string;
   kind?: "artwork" | "avatar";
 }) {
-  const [failed, setFailed] = useState(!src);
+  const [failedSrc, setFailedSrc] = useState<string>();
   const className =
     kind === "avatar" ? styles.avatarFallback : styles.artworkFallback;
-  if (failed) {
+  if (!src || failedSrc === src) {
     return (
       <span
         className={className}
@@ -31,7 +31,7 @@ export function Artwork({
       alt={`${name} ${kind}`}
       loading="lazy"
       decoding="async"
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
     />
   );
 }

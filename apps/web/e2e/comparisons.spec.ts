@@ -250,3 +250,52 @@ test("shortcuts respect focus and touch targets at 360px", async ({ page }) => {
     page.getByRole("img", { name: /portal artwork unavailable/i }),
   ).toBeVisible();
 });
+
+test("the compact comparison stage stays visible and stable while advancing", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await configureAuthenticatedCompare(page);
+  let allocation = 0;
+  let releaseNext!: () => void;
+  const nextPair = new Promise<void>((resolve) => {
+    releaseNext = resolve;
+  });
+  await page.route("**/api/v1/comparisons/next", async (route) => {
+    const index = allocation++;
+    if (index > 0) await nextPair;
+    await route.fulfill({ json: comparison(index) });
+  });
+  await page.route("**/api/v1/comparisons/*/result", (route) =>
+    route.fulfill({
+      json: {
+        comparisonId: comparison(0).comparisonId,
+        outcome: "DRAW",
+        completedAt: "2026-08-10T09:00:00Z",
+      },
+    }),
+  );
+
+  await page.getByRole("link", { name: "Compare" }).click();
+  const draw = page.getByRole("button", { name: "Draw" });
+  const skip = page.getByRole("button", { name: "Skip" });
+  await expect(draw).toBeVisible();
+  await expect(skip).toBeVisible();
+  await expect(page.getByText(comparison(0).comparisonId)).toBeHidden();
+  await expect(page.getByText(/Press L for the left game/)).toBeHidden();
+  const initialTop = (await draw.boundingBox())!.y;
+  expect((await skip.boundingBox())!.y).toBeLessThan(720);
+
+  await draw.click();
+  await expect(page.getByText(/loading the next comparison/i)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /portal choose left/i }),
+  ).toBeDisabled();
+  expect(Math.abs((await draw.boundingBox())!.y - initialTop)).toBeLessThan(2);
+
+  releaseNext();
+  await expect(
+    page.getByRole("button", { name: /hades choose left/i }),
+  ).toBeEnabled();
+  expect(Math.abs((await draw.boundingBox())!.y - initialTop)).toBeLessThan(2);
+});

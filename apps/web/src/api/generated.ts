@@ -672,9 +672,15 @@ export interface operations {
     getMySteamLibrary: {
         parameters: {
             query?: {
-                /** @description Opaque continuation cursor from the previous response. */
+                /** @description Opaque continuation cursor from the previous response; valid only with the originating filters. */
                 cursor?: string;
                 limit?: number;
+                /** @description Case-insensitive substring match over imported game names. */
+                name?: string;
+                /** @description Match the server-computed effective comparison eligibility. */
+                effectivelyEligible?: boolean;
+                /** @description Match the user's explicit comparison-eligibility override behavior. */
+                eligibilityOverride?: "DEFAULT" | "INCLUDED" | "EXCLUDED";
             };
             header?: never;
             path?: never;

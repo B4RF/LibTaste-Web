@@ -7,6 +7,11 @@ export type LibraryItem = components["schemas"]["LibraryItem"];
 export type LibraryPageData = components["schemas"]["LibraryPage"];
 export type EligibilityBehavior =
   components["schemas"]["EligibilityRequest"]["behavior"];
+export interface LibraryFilters {
+  name?: string;
+  effectivelyEligible?: boolean;
+  eligibilityOverride?: EligibilityBehavior;
+}
 
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -21,10 +26,20 @@ export async function getProfile(
 
 export async function getLibraryPage(
   session: SessionManager,
+  filters: LibraryFilters,
   cursor?: string,
   signal?: AbortSignal,
 ): Promise<LibraryPageData> {
-  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  const parameters = new URLSearchParams();
+  if (cursor) parameters.set("cursor", cursor);
+  if (filters.name) parameters.set("name", filters.name);
+  if (filters.effectivelyEligible !== undefined) {
+    parameters.set("effectivelyEligible", String(filters.effectivelyEligible));
+  }
+  if (filters.eligibilityOverride) {
+    parameters.set("eligibilityOverride", filters.eligibilityOverride);
+  }
+  const query = parameters.size > 0 ? `?${parameters}` : "";
   return readJson<LibraryPageData>(
     await session.request(`/me/library${query}`, { signal }),
   );

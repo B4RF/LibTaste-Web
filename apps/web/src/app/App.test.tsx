@@ -27,7 +27,7 @@ function renderRoute(
 }
 
 describe("application routes", () => {
-  it("places the protected Recommendations route immediately after Compare", async () => {
+  it("groups leaderboards in an accessible disclosure while keeping core tasks direct", async () => {
     const result = renderRoute("/");
     const navigation = screen.getByRole("navigation", {
       name: "Primary navigation",
@@ -36,12 +36,28 @@ describe("application routes", () => {
     expect(links.map((link) => link.textContent)).toEqual([
       "Compare",
       "Recommendations",
-      "My Ranking",
       "Library",
-      "Settings",
-      "Global",
     ]);
     expect(links[1]).toHaveAttribute("href", "/recommendations");
+    const leaderboards = within(navigation).getByRole("button", {
+      name: "Leaderboards",
+    });
+    expect(leaderboards).toHaveAttribute("aria-expanded", "false");
+    await userEvent.hover(leaderboards);
+    expect(leaderboards).toHaveAttribute("aria-expanded", "true");
+    await userEvent.unhover(leaderboards);
+    expect(leaderboards).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(leaderboards);
+    expect(leaderboards).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(navigation).getByRole("link", { name: "My ranking" }),
+    ).toHaveAttribute("href", "/leaderboard/me");
+    expect(
+      within(navigation).getByRole("link", { name: "Global" }),
+    ).toHaveAttribute("href", "/leaderboard/global");
+    await userEvent.keyboard("{Escape}");
+    expect(leaderboards).toHaveAttribute("aria-expanded", "false");
+    expect(leaderboards).toHaveFocus();
     expect(await axe(result.container)).toHaveNoViolations();
   });
 
@@ -135,6 +151,7 @@ describe("application routes", () => {
           : {
               steamId64: "76561198000000000",
               displayName: "Test Pilot",
+              avatarUrl: "https://cdn.example.test/avatar.jpg",
               libraryState: "AVAILABLE",
               synchronization: null,
             };
@@ -147,6 +164,15 @@ describe("application routes", () => {
     expect(
       await screen.findByRole("heading", { name: "Compare games" }),
     ).toBeVisible();
+    expect(
+      await screen.findByRole("button", { name: "Test Pilot profile" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("img", { name: "Test Pilot avatar" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByLabelText("Library synchronization status"),
+    ).not.toBeInTheDocument();
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
@@ -196,9 +222,14 @@ describe("application routes", () => {
     });
     renderRoute("/compare", new SessionManager(config, { fetcher }));
     expect(await screen.findByText("Synchronization pending")).toBeVisible();
-    await userEvent.click(screen.getByRole("link", { name: "Settings" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Test Pilot profile" }),
+    );
+    await userEvent.click(
+      screen.getByRole("link", { name: "Account & Security" }),
+    );
     expect(
-      await screen.findByRole("heading", { name: "Settings" }),
+      await screen.findByRole("heading", { name: "Account & Security" }),
     ).toBeVisible();
     expect(screen.getByText("Synchronization pending")).toBeVisible();
   });

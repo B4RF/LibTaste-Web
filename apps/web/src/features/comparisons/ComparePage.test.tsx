@@ -172,6 +172,57 @@ describe("ComparePage", () => {
     expect(allocationCount).toBe(2);
   });
 
+  it("keeps the previous stage in place while the next pair is loading", async () => {
+    let allocationCount = 0;
+    let resolveNext!: (response: Response) => void;
+    const nextAllocation = new Promise<Response>((resolve) => {
+      resolveNext = resolve;
+    });
+    const fetcher = authenticatedFetcher((url) => {
+      if (url.pathname.endsWith("/comparisons/next")) {
+        allocationCount += 1;
+        return allocationCount === 1 ? json(comparison) : nextAllocation;
+      }
+      return json(result("LEFT_WIN"));
+    });
+    renderCompare(fetcher);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /portal choose left/i }),
+    );
+    expect(
+      await screen.findByText(/finding your current comparison/i),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: /portal choose left/i }),
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Draw" })).toBeDisabled();
+
+    resolveNext(json(nextComparison));
+    expect(
+      await screen.findByRole("button", {
+        name: /counter-strike 2 choose left/i,
+      }),
+    ).toBeEnabled();
+  });
+
+  it("keeps identifiers and detailed shortcut help behind accessible disclosures", async () => {
+    const fetcher = authenticatedFetcher(() => json(comparison));
+    renderCompare(fetcher);
+    await screen.findByRole("button", { name: /portal choose left/i });
+
+    expect(screen.getByText(/choices are final/i)).toBeVisible();
+    const comparisonDetails = screen.getByText("Comparison details");
+    expect(screen.getByText(comparison.comparisonId)).not.toBeVisible();
+    await userEvent.click(comparisonDetails);
+    expect(screen.getByText(comparison.comparisonId)).toBeVisible();
+
+    const shortcutDetails = screen.getByText("Keyboard shortcuts");
+    expect(screen.getByText(/press l for the left game/i)).not.toBeVisible();
+    await userEvent.click(shortcutDetails);
+    expect(screen.getByText(/press l for the left game/i)).toBeVisible();
+  });
+
   it("submits the right orientation by documented keyboard shortcut", async () => {
     const bodies: string[] = [];
     const fetcher = authenticatedFetcher((url, init) => {
@@ -362,7 +413,9 @@ describe("ComparePage", () => {
     const fetcher = authenticatedFetcher(() => json(expired));
     renderCompare(fetcher);
 
-    expect(await screen.findByText(/submission window passed/i)).toBeVisible();
+    expect(
+      (await screen.findAllByText(/submission window passed/i))[0],
+    ).toBeVisible();
     expect(
       screen.getByRole("button", { name: /portal choose left/i }),
     ).toBeEnabled();

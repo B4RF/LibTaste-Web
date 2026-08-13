@@ -3,7 +3,7 @@
 Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-10
+Last updated: 2026-08-13
 Supersedes: None  
 Superseded by: None
 
@@ -38,7 +38,10 @@ a publicly deployed static container using environment-specific, non-secret runt
 ## Functional requirements
 
 - **FR-001:** The application shall provide public routes for the landing page and global leaderboard entry point, a
-  callback route at `/auth/callback`, and protected navigation entries for Compare, My Ranking, Library, and Settings.
+  callback route at `/auth/callback`, and protected routes for Compare, Recommendations, My Ranking, Library, and
+  Account & Security. Primary navigation shall expose Compare, Recommendations, and Library directly, group My Ranking
+  and Global beneath a Leaderboards disclosure, and expose Steam-profile and Account & Security links beneath an
+  authenticated profile disclosure.
 - **FR-002:** The landing page shall explain pairwise game ranking and Steam authentication and shall offer only real
   product actions: signing in through Steam and opening the public global leaderboard.
 - **FR-003:** Starting authentication shall generate a cryptographically random PKCE verifier, derive an S256 challenge,
@@ -66,6 +69,9 @@ a publicly deployed static container using environment-specific, non-secret runt
   defaulting to `http://localhost:8080` without depending on the sibling API checkout.
 - **FR-012:** Missing artwork or profile images shall render a neutral fallback without preventing navigation or exposing
   broken-image text as the accessible name.
+- **FR-013:** Navigation disclosures shall be operable by pointer, touch, and keyboard, shall expose their expanded
+  state, shall close through Escape and focus-safe dismissal, and shall never require hover. Hover may open a disclosure
+  only as an additional desktop interaction that remains dismissible, hoverable, and persistent.
 
 ## Non-functional requirements
 
@@ -89,6 +95,10 @@ a publicly deployed static container using environment-specific, non-secret runt
 - **NFR-008:** CI shall validate specifications and OpenAPI generation and run formatting, linting, type checking, unit
   and component tests, deterministic mocked browser journeys, coverage, production build, and container build without
   publishing or deploying artifacts.
+- **NFR-009:** Product routes shall use a compact visual hierarchy distinct from the expressive landing hero. At a
+  1280-by-720 viewport, an ordinary loaded product route shall show its heading and the beginning of its primary task
+  content in the initial viewport without reducing normal body copy below its one-rem baseline or shrinking interactive
+  targets below the established accessible sizes.
 
 ## Acceptance scenarios
 
@@ -150,6 +160,20 @@ internal destination preserved
 **When** repository verification runs  
 **Then** verification fails with a reproducible regeneration command
 
+### AC-010: Use grouped responsive navigation
+
+**Given** a visitor or authenticated user is using pointer, touch, or keyboard input
+**When** they open Leaderboards or the authenticated profile disclosure
+**Then** the available route links can be reached and activated without hover, the disclosure state is announced, and
+Escape returns focus safely to its trigger
+
+### AC-011: Open a compact product route
+
+**Given** an ordinary successful product route is rendered at 1280 by 720 CSS pixels
+**When** its initial content is ready
+**Then** its heading and the beginning of its primary task content are visible without vertical scrolling while body
+copy and interactive controls retain the established accessible sizing
+
 ## Interfaces and data
 
 - Consumes `GET /api/v1/auth/steam/authorize` and `POST /api/v1/auth/token` from `openapi/openapi.yaml`.
@@ -200,12 +224,15 @@ None.
 | AC-007 | Browser test | `apps/web/src/bootstrap.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
 | AC-008 | Container verification | `apps/web/scripts/verify-container.mjs` | Passed 2026-08-10 |
 | AC-009 | Script verification | `apps/web/scripts/check-openapi.mjs` | Passed 2026-08-10 |
-| NFR-002 | Automated accessibility and viewport tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
+| AC-010 | Component/browser navigation tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts`, `apps/web/src/components/Artwork.test.tsx` | Passed 2026-08-13 |
+| AC-011 | Browser layout test | `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
+| NFR-002 | Automated accessibility and viewport tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
 | NFR-003 | Browser project configuration | `apps/web/playwright.config.ts`, `apps/web/package.json#browserslist` | Passed 2026-08-10 |
 | NFR-004 | Automated header and logging review | `apps/web/scripts/verify-container.mjs`, `apps/web/src/api/client.test.ts` | Passed 2026-08-10 |
 | NFR-006 | Build verification | `apps/web/package.json`, `package-lock.json`, `apps/web/README.md` | Passed 2026-08-10 |
 | NFR-007 | Coverage report | `apps/web/vitest.config.ts` (92.71% statements, 89.36% branches, 92.53% functions, 94.78% lines) | Passed 2026-08-10 |
 | NFR-008 | CI configuration inspection | `.github/workflows/verify.yml` | Passed 2026-08-10 |
+| NFR-009 | Browser layout and computed-style test | `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
 
 ## Verification commands
 
@@ -216,6 +243,11 @@ None.
 | `npx playwright test` | Passed (25 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari) | 2026-08-10 |
 | `docker build --file apps/web/Dockerfile --tag libtaste-web:spec-0001 .` | Passed | 2026-08-10 |
 | `$env:LIBTASTE_CONTAINER_URL='http://127.0.0.1:8088'; node apps/web/scripts/verify-container.mjs` | Passed | 2026-08-10 |
+| `npm.cmd run verify` | Passed: 92 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-12 |
+| Changed Playwright journeys across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | Passed | 2026-08-12 |
+| Focused profile-avatar and application navigation component tests | Passed (12 tests) | 2026-08-13 |
+| Grouped-navigation Playwright journey in Chromium | Passed | 2026-08-13 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 93 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-13 |
 
 ## Completion checklist
 

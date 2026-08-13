@@ -6,6 +6,15 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ## Unreleased
 
+### Changed
+
+- Grouped personal/global rankings under an accessible Leaderboards disclosure and moved Steam profile plus account
+  controls into an authenticated profile disclosure.
+- Added server-backed, URL-addressable Library filters for game name, effective eligibility, and explicit eligibility
+  override while retaining filters across opaque cursor pages.
+- Made product routes more compact, kept Compare stable while the next pair loads, progressively disclosed secondary
+  help, limited displayed leaderboard scores to two decimals, and renamed Settings to Account & Security.
+
 ### Added
 
 - Added the responsive React/Vite web foundation with public and protected routes.
@@ -25,4 +34,6 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ### Fixed
 
+- Fixed profile avatars remaining on their loading fallback and hover-opened navigation disclosures closing before an
+  option could be reached.
 - Stabilized coverage verification for the 100-game library accessibility stress test on slower CI runners.

@@ -8,6 +8,7 @@ import { SessionManager } from "../../api/client";
 import type { components } from "../../api/generated";
 import { ApplicationProviders, ApplicationRoutes } from "../../app/App";
 import type { RuntimeConfig } from "../../config";
+import { formatScore } from "./LeaderboardPage";
 
 type GlobalEntry = components["schemas"]["GlobalLeaderboardEntry"];
 type PersonalEntry = components["schemas"]["PersonalLeaderboardEntry"];
@@ -127,12 +128,16 @@ describe("game leaderboards", () => {
       screen.queryByRole("columnheader", { name: "Comparisons" }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("19 contributors")).toBeVisible();
-    expect(screen.getByText("42.75")).toBeVisible();
+    expect(screen.getByText(formatScore(42.75))).toBeVisible();
+    expect(
+      screen.getByText(/global score summarizes contributor ratings/i),
+    ).toBeVisible();
     expect(
       screen.getByText(
         /global score is the API's capped precision-weighted mean/i,
       ),
-    ).toBeVisible();
+    ).not.toBeVisible();
+    await userEvent.click(screen.getByText("How scoring works"));
     expect(screen.getByText(/must not be directly compared/i)).toBeVisible();
     expect(refresh).not.toHaveBeenCalled();
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -214,8 +219,12 @@ describe("game leaderboards", () => {
     expect(within(portalRow).getByText("Currently owned")).toBeVisible();
     expect(within(portalRow).getByText("Eligible")).toBeVisible();
     expect(
-      screen.getByText(/personal score is the API's conservative rating/i),
+      screen.getByText(/personal score reflects your ranking/i),
     ).toBeVisible();
+    expect(
+      screen.getByText(/personal score is the API's conservative rating/i),
+    ).not.toBeVisible();
+    await userEvent.click(screen.getByText("How scoring works"));
 
     await userEvent.click(screen.getByRole("button", { name: "Load more" }));
     expect(
@@ -228,6 +237,7 @@ describe("game leaderboards", () => {
     expect(
       await screen.findByRole("rowheader", { name: "Hades" }),
     ).toBeVisible();
+    expect(screen.getByText(formatScore(18.125))).toBeVisible();
     expect(screen.getAllByRole("rowheader", { name: "Portal" })).toHaveLength(
       1,
     );
@@ -283,7 +293,7 @@ describe("game leaderboards", () => {
     expect(screen.queryByRole("row")).not.toBeInTheDocument();
   });
 
-  it("renders 100 lazy-artwork rows accessibly without changing transport precision", async () => {
+  it("renders 100 lazy-artwork rows accessibly with at most two score decimals", async () => {
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: 360,
@@ -305,8 +315,9 @@ describe("game leaderboards", () => {
       await screen.findByRole("rowheader", { name: "Game 100" }),
     ).toBeVisible();
     expect(screen.getAllByRole("rowheader")).toHaveLength(100);
-    expect(screen.getByText("1.23456789")).toBeVisible();
-    for (const image of screen.getAllByRole("img")) {
+    expect(screen.getByText(formatScore(1.23456789))).toBeVisible();
+    expect(screen.queryByText("1.23456789")).not.toBeInTheDocument();
+    for (const image of screen.getAllByRole("img", { name: /artwork/i })) {
       expect(image).toHaveAttribute("loading", "lazy");
     }
     expect(await axe(container)).toHaveNoViolations();

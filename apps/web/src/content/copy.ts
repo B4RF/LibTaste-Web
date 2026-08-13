@@ -13,10 +13,12 @@ export const copy = {
   navigation: {
     compare: "Compare",
     recommendations: "Recommendations",
-    personalRanking: "My Ranking",
+    personalRanking: "My ranking",
     library: "Library",
-    settings: "Settings",
+    settings: "Account & Security",
+    leaderboards: "Leaderboards",
     global: "Global",
+    profile: (name: string) => `${name} profile`,
   },
   landing: {
     eyebrow: "Your library, in your order",
@@ -39,7 +41,7 @@ export const copy = {
     recommendations: "Recommendations",
     personalRanking: "My ranking",
     library: "Steam library",
-    settings: "Settings",
+    settings: "Account & Security",
     signedIn: "Signed in",
     globalEyebrow: "Public",
     globalTitle: "Global leaderboard",
@@ -63,10 +65,9 @@ export const copy = {
   },
   compare: {
     eyebrow: "Pairwise ranking",
-    summary:
-      "Choose the game you prefer, record a draw, or skip this server-selected pair.",
-    irreversible:
-      "Every submitted outcome is final and cannot be undone. Retrying sends the identical choice for the same comparison.",
+    summary: "Choose the game you prefer, record a draw, or skip this pair.",
+    irreversible: "Choices are final. A retry repeats the same choice.",
+    details: "Comparison details",
     loading: "Finding your current comparison…",
     retry: (outcome: string) => `Retry ${outcome}`,
     status: {
@@ -195,6 +196,7 @@ export const copy = {
   leaderboards: {
     loadMore: "Load more",
     retryMore: "Retry loading more",
+    scoringInfo: "How scoring works",
     rateLimited:
       "Leaderboard requests are temporarily rate limited. Wait for the API cooldown before trying again.",
     columns: {
@@ -220,6 +222,8 @@ export const copy = {
     global: {
       summary:
         "Browse the public contributed-games ranking in the API's server-provided order.",
+      scoreSummary:
+        "Global score summarizes contributor ratings; it is not comparable with personal score.",
       scoreHelp:
         "Global score is the API's capped precision-weighted mean across contributors. Personal and global scores have different meanings and must not be directly compared.",
       tableLabel: "Global game rankings",
@@ -234,6 +238,8 @@ export const copy = {
       eyebrow: "Your ordered library",
       summary:
         "Browse your personal game order using current ownership by default.",
+      scoreSummary:
+        "Personal score reflects your ranking; it is not comparable with global score.",
       scoreHelp:
         "Personal score is the API's conservative rating (mu minus three sigma). Personal and global scores have different meanings and must not be directly compared.",
       tableLabel: "Personal game rankings",
@@ -256,6 +262,7 @@ export const copy = {
     summary:
       "Browse imported games, review ownership and playtime, and choose which currently owned games can enter comparisons.",
     profileStatus: "Steam profile and library synchronization",
+    synchronizationStatus: "Library synchronization status",
     steamPlayer: "Steam player",
     openSteamProfile: "Open Steam profile",
     synchronize: "Synchronize library",
@@ -271,6 +278,17 @@ export const copy = {
     loadMore: "Load more",
     end: "End of library",
     empty: "No imported Steam games are available.",
+    noMatches: "No games match these filters.",
+    filters: {
+      name: "Game name",
+      namePlaceholder: "Search imported games",
+      effectiveEligibility: "Effective eligibility",
+      eligibilityOverride: "Eligibility override",
+      all: "All",
+      eligible: "Eligible",
+      notEligible: "Not eligible",
+      clear: "Clear filters",
+    },
     notSynchronized:
       "Your Steam library has not been synchronized yet. Request synchronization to import it.",
     privateTitle: "Steam game details are private or unavailable",

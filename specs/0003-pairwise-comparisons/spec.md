@@ -1,9 +1,9 @@
 # SPEC-0003: Pairwise game comparisons
 
-Status: Verified  
+Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-10  
+Last updated: 2026-08-12
 Supersedes: None  
 Superseded by: None
 
@@ -15,9 +15,9 @@ slow, retried, expired, exhausted, or unavailable because their Steam library ca
 
 ## Desired outcome
 
-An authenticated eligible user can repeatedly choose the preferred game, declare a draw, or skip a comparison, with
-clear irreversible-action guidance, keyboard and pointer accessibility, idempotent submission behavior, and recovery
-from every documented API response.
+An authenticated eligible user can repeatedly choose the preferred game, declare a draw, or skip a comparison in a
+compact, stable viewport, with concise irreversible-action guidance, keyboard and pointer accessibility, idempotent
+submission behavior, and recovery from every documented API response.
 
 ## Scope
 
@@ -25,6 +25,7 @@ from every documented API response.
 - Responsive left/right game cards using API-supplied names and artwork.
 - Immediate left win, right win, draw, and skip outcomes.
 - Submission locking, retry behavior, keyboard shortcuts, expiry awareness, and loading the next pair.
+- Stable above-the-fold comparison controls with progressively disclosed secondary information.
 - Guidance when synchronization, library availability, or eligible population prevents allocation.
 
 ## Non-goals
@@ -36,11 +37,12 @@ from every documented API response.
 ## Functional requirements
 
 - **FR-001:** Opening Compare shall call `POST /comparisons/next` once per allocation attempt and render the exact
-  server-issued left and right orientation, game names, artwork, comparison ID, and submission-window state.
+  server-issued left and right orientation, game names, and artwork. The comparison ID and ordinary submission-window
+  state shall remain available in an expandable details surface without preceding the outcome controls.
 - **FR-002:** Activating the left or right game card shall immediately submit `LEFT_WIN` or `RIGHT_WIN` respectively;
   separate actions shall submit `DRAW` and `SKIP` without a per-choice confirmation dialog.
-- **FR-003:** The page shall state before interaction that submitted outcomes cannot be undone and shall not describe an
-  API retry of the identical outcome as an undo or a second comparison.
+- **FR-003:** The page shall state concisely before interaction that choices are final and that a retry repeats the same
+  choice; it shall not describe an API retry of the identical outcome as an undo or a second comparison.
 - **FR-004:** All outcome controls shall disable after the first activation and remain locked until that submission
   resolves. Pointer, touch, keyboard activation, rerender, and repeated events shall not create conflicting requests.
 - **FR-005:** A successful submission shall acknowledge the recorded outcome briefly and automatically request the next
@@ -52,10 +54,15 @@ from every documented API response.
 - **FR-008:** Allocation responses indicating insufficient eligible games, unavailable synchronization, rate limiting,
   or no available pair shall render distinct non-interactive recovery states and link to Library when eligibility or
   synchronization can be addressed there.
-- **FR-009:** Keyboard shortcuts shall support left choice, right choice, draw, and skip, be documented on the page, and
-  be inactive while submitting or when focus is in another interactive or text-entry control.
-- **FR-010:** Comparison expiry shall be conveyed without relying on color alone; the client may warn as expiry
-  approaches but shall treat the server response as authoritative if local and server time disagree.
+- **FR-009:** Keyboard shortcuts shall support left choice, right choice, draw, and skip, be documented by the visible
+  action hints and an accessible expandable help surface, and be inactive while submitting or when focus is in another
+  interactive or text-entry control.
+- **FR-010:** Comparison expiry shall be conveyed without relying on color alone. Ordinary expiry information may live
+  in expandable details, but an approaching or locally passed expiry shall become visibly prominent; the client shall
+  treat the server response as authoritative if local and server time disagree.
+- **FR-011:** Allocation, submission acknowledgement, and loading the next pair shall preserve a stable comparison-stage
+  footprint and scroll position. Advancing successfully shall not collapse the page or require a desktop user to scroll
+  back to the outcome controls for every pair.
 
 ## Non-functional requirements
 
@@ -68,6 +75,9 @@ from every documented API response.
   identifiers, game identifiers, orientation, outcome success, rating values, or model state.
 - **NFR-004:** Deterministic browser tests shall cover rapid repeated activation, identical retry, expiry, keyboard use,
   and every documented outcome without contacting Steam or a live LibTaste environment.
+- **NFR-005:** At a 1280-by-720 viewport, an ordinary interactive comparison shall display both game choices plus Draw
+  and Skip in the initial viewport. Concision shall not reduce the one-rem body baseline or 44-by-44-pixel outcome
+  targets required for accessibility.
 
 ## Acceptance scenarios
 
@@ -120,6 +130,21 @@ server-issued pair
 **When** the user types a comparison shortcut key  
 **Then** no outcome is submitted unless the focused control itself was explicitly activated
 
+### AC-009: Advance without repeated scrolling
+
+**Given** an interactive pair is visible and the user has not manually changed scroll position
+**When** an outcome succeeds and the next pair is allocated
+**Then** the comparison stage keeps a stable footprint and the next pair's outcome controls remain in the same usable
+viewport without a page-collapse scroll jump
+
+### AC-010: Prioritize comparison controls over secondary help
+
+**Given** an ordinary pair is loaded at 1280 by 720 CSS pixels
+**When** Compare is rendered
+**Then** both game choices, Draw, and Skip are visible without vertical scrolling, concise final-choice guidance appears
+before them, and comparison identifiers, ordinary expiry, and detailed shortcut help remain available after the controls
+through accessible disclosure
+
 ## Interfaces and data
 
 - Consumes `POST /api/v1/comparisons/next` and
@@ -164,10 +189,13 @@ None.
 | AC-006 | Browser test | `comparisons.spec.ts` expired-pair recovery journey and matching component test | Passed 2026-08-10 |
 | AC-007 | Browser test | `comparisons.spec.ts` actionable allocation causes; component coverage for synchronization, eligibility, rate limit, and no pair | Passed 2026-08-10 |
 | AC-008 | Browser test | `comparisons.spec.ts` focus-safe shortcut journey and matching component test | Passed 2026-08-10 |
-| NFR-001 | Automated accessibility and viewport tests | `ComparePage.test.tsx` axe audit; `comparisons.spec.ts` 360px overflow and 44px target assertions across five browser projects | Passed 2026-08-10 |
+| AC-009 | Browser layout/state-transition test | `apps/web/e2e/comparisons.spec.ts` | Passed 2026-08-12 |
+| AC-010 | Browser/component disclosure and viewport test | `ComparePage.test.tsx`, `apps/web/e2e/comparisons.spec.ts` | Passed 2026-08-12 |
+| NFR-001 | Automated accessibility and viewport tests | `ComparePage.test.tsx` axe audit; `comparisons.spec.ts` 360px overflow and 44px target assertions across five browser projects | Passed 2026-08-12 |
 | NFR-002 | Visual/component test | `ComparePage.test.tsx` artwork failure fallback; `Artwork.test.tsx` neutral fallback and aspect-ratio coverage | Passed 2026-08-10 |
 | NFR-003 | Request-boundary test | `ComparePage.test.tsx` server comparison ID, orientation-derived outcome, and request-body assertions | Passed 2026-08-10 |
 | NFR-004 | Browser suite review | `comparisons.spec.ts`: 25 comparison journeys passed across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | Passed 2026-08-10 |
+| NFR-005 | Browser viewport and computed-size test | `apps/web/e2e/comparisons.spec.ts` | Passed 2026-08-12 |
 
 ## Verification commands
 
@@ -177,6 +205,8 @@ None.
 | `npm.cmd run e2e -- --workers=1` from `apps/web` | Passed: 55 tests across all five browser projects | 2026-08-10 |
 | `node scripts/validate-specs.mjs` | Passed | 2026-08-10 |
 | Production container build and `apps/web/scripts/verify-container.mjs` | Passed: health, SPA fallback, runtime config, compression, and security headers | 2026-08-10 |
+| `npm.cmd run verify` | Passed: 92 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-12 |
+| Compact-stage Playwright journey across five browser projects | Passed | 2026-08-12 |
 
 ## Completion checklist
 
