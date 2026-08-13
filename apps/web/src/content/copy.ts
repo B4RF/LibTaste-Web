@@ -65,13 +65,14 @@ export const copy = {
   },
   compare: {
     eyebrow: "Pairwise ranking",
-    summary: "Choose the game you prefer, record a draw, or skip this pair.",
+    summary:
+      "Choose the game you prefer, record a draw, skip this pair, or exclude a game from future comparisons.",
     irreversible: "Choices are final. A retry repeats the same choice.",
     details: "Comparison details",
     loading: "Finding your current comparison…",
     retry: (outcome: string) => `Retry ${outcome}`,
     status: {
-      ready: "Choose an outcome. All four actions submit immediately.",
+      ready: "Choose an outcome or exclude either game.",
       submitting: (outcome: string) => `Submitting ${outcome}…`,
       uncertain: (outcome: string) =>
         `The result is uncertain. Only the identical ${outcome} can be retried.`,
@@ -79,6 +80,28 @@ export const copy = {
         `Recorded ${outcome}. Loading the next comparison.`,
       skipped:
         "Skipped. No rating change is claimed. Loading the next comparison.",
+    },
+    exclusion: {
+      action: "Exclude",
+      label: (name: string) => `Exclude ${name} from comparisons`,
+      excluding: (name: string) => `Excluding ${name} from comparisons…`,
+      rejected: (name: string) =>
+        `${name} was not excluded. This pair remains available.`,
+      uncertain: (name: string) =>
+        `Excluding ${name} is uncertain. Only the identical exclusion can be retried.`,
+      retiring: (name: string) =>
+        `${name} was excluded. Retiring this pair without a rating change…`,
+      retirementUncertain: (name: string) =>
+        `${name} was excluded, but retiring this pair is uncertain. Only the identical skip can be retried.`,
+      excluded: (name: string) =>
+        `Excluded ${name}. No rating change was recorded. Loading the next comparison.`,
+      retry: (name: string) => `Retry excluding ${name}`,
+      retryRetirement: (name: string) =>
+        `Retry finishing exclusion for ${name}`,
+    },
+    steam: {
+      action: "View on Steam",
+      label: (name: string) => `View ${name} on Steam (opens in a new tab)`,
     },
     expiry: {
       open: (time: string) => `Submission window is open until ${time}.`,
@@ -90,7 +113,7 @@ export const copy = {
     shortcuts: {
       title: "Keyboard shortcuts",
       detail:
-        "Press L for the left game, R for the right game, D for draw, or S to skip. Shortcuts pause while another control or text field has focus.",
+        "Press A for the left game, D for the right game, W for draw, or S to skip. Shortcuts pause while another control or text field has focus.",
     },
     stale: {
       eyebrow: "Comparison changed",
@@ -295,6 +318,8 @@ export const copy = {
     privateDetail:
       "You remain signed in. Make Steam game details public, then synchronize again. LibTaste cannot change Steam privacy settings for you.",
     privacyGuidance: "Open Steam privacy guidance",
+    steamLinkLabel: (name: string) =>
+      `Open ${name} on Steam (opens in a new tab)`,
     playtime: "Recorded playtime",
     neverPlayed: "No recorded playtime",
     ownership: "Ownership",

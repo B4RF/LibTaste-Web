@@ -6,7 +6,11 @@ import { useAuth } from "../../auth/AuthContext";
 import { Artwork } from "../../components/Artwork";
 import { ProblemNotice } from "../../components/ProblemNotice";
 import { copy } from "../../content/copy";
+import { steamStoreUrl } from "../../steam";
 import styles from "../../styles/App.module.css";
+import { updateEligibility } from "../library/libraryApi";
+import { libraryQueryKey } from "../library/ProfileSyncStatus";
+import { personalLeaderboardQueryKey } from "../leaderboards/leaderboardApi";
 import { recommendationQueryKey } from "../recommendations/recommendationApi";
 import {
   getNextComparison,
@@ -34,6 +38,18 @@ type SubmissionState =
       comparison: Comparison;
       result: ComparisonResult;
     }
+  | {
+      kind: "excluding" | "exclusion-rejected" | "exclusion-uncertain";
+      comparison: Comparison;
+      game: Comparison["left"];
+      error?: unknown;
+    }
+  | {
+      kind: "retiring" | "retirement-uncertain" | "excluded";
+      comparison: Comparison;
+      game: Comparison["left"];
+      error?: unknown;
+    }
   | { kind: "stale"; error: unknown };
 
 type AllocationKind =
@@ -47,10 +63,10 @@ const outcomeLabels: Record<ComparisonOutcome, string> = {
 };
 
 const shortcuts: Record<string, ComparisonOutcome> = {
-  l: "LEFT_WIN",
-  r: "RIGHT_WIN",
-  d: "DRAW",
+  w: "DRAW",
+  a: "LEFT_WIN",
   s: "SKIP",
+  d: "RIGHT_WIN",
 };
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -119,7 +135,7 @@ function ComparisonCard({
   onChoose: () => void;
 }) {
   const game = comparison[side];
-  const shortcut = side === "left" ? "L" : "R";
+  const shortcut = side === "left" ? "A" : "D";
   return (
     <button
       type="button"
@@ -136,6 +152,52 @@ function ComparisonCard({
         </span>
       </span>
     </button>
+  );
+}
+
+function ComparisonChoice({
+  comparison,
+  side,
+  disabled,
+  onChoose,
+  onExclude,
+}: {
+  comparison: Comparison;
+  side: "left" | "right";
+  disabled: boolean;
+  onChoose: () => void;
+  onExclude: () => void;
+}) {
+  const game = comparison[side];
+  return (
+    <div className={styles.comparisonChoice}>
+      <ComparisonCard
+        comparison={comparison}
+        side={side}
+        disabled={disabled}
+        onChoose={onChoose}
+      />
+      <div className={styles.comparisonUtilities}>
+        <a
+          className={styles.steamLink}
+          href={steamStoreUrl(game.appId)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={copy.compare.steam.label(game.name)}
+        >
+          {copy.compare.steam.action} <span aria-hidden="true">↗</span>
+        </a>
+        <button
+          type="button"
+          className={`${styles.secondaryButton} ${styles.excludeButton}`}
+          aria-label={copy.compare.exclusion.label(game.name)}
+          disabled={disabled}
+          onClick={onExclude}
+        >
+          <span aria-hidden="true">×</span> {copy.compare.exclusion.action}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -199,6 +261,13 @@ export function ComparePage() {
     setAllocationAttempt((attempt) => attempt + 1);
   }, []);
 
+  const interactiveComparison =
+    state.kind === "allocating" && allocation.isSuccess
+      ? allocation.data
+      : state.kind === "exclusion-rejected"
+        ? state.comparison
+        : undefined;
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -241,24 +310,111 @@ export function ComparePage() {
     [queryClient, requestCurrent, session],
   );
 
+  const finishExclusion = useCallback(
+    (comparison: Comparison, game: Comparison["left"]) => {
+      setState({ kind: "excluded", comparison, game });
+      advanceTimer.current = window.setTimeout(
+        () => requestCurrent(comparison),
+        450,
+      );
+    },
+    [requestCurrent],
+  );
+
+  const retireExcludedComparison = useCallback(
+    async (comparison: Comparison, game: Comparison["left"]) => {
+      setState({ kind: "retiring", comparison, game });
+      try {
+        await submitComparisonResult(session, comparison.comparisonId, "SKIP");
+        finishExclusion(comparison, game);
+      } catch (error) {
+        if (isStaleProblem(error)) {
+          finishExclusion(comparison, game);
+        } else {
+          setState({
+            kind: "retirement-uncertain",
+            comparison,
+            game,
+            error,
+          });
+        }
+      }
+    },
+    [finishExclusion, session],
+  );
+
+  const sendExclusion = useCallback(
+    async (comparison: Comparison, game: Comparison["left"]) => {
+      setState({ kind: "excluding", comparison, game });
+      try {
+        await updateEligibility(session, game.appId, "EXCLUDED");
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: libraryQueryKey }),
+          queryClient.invalidateQueries({
+            queryKey: personalLeaderboardQueryKey,
+          }),
+          queryClient.invalidateQueries({ queryKey: recommendationQueryKey }),
+        ]);
+        await retireExcludedComparison(comparison, game);
+      } catch (error) {
+        if (error instanceof ApiProblem) {
+          submissionLock.current = false;
+          setState({
+            kind: "exclusion-rejected",
+            comparison,
+            game,
+            error,
+          });
+        } else {
+          setState({
+            kind: "exclusion-uncertain",
+            comparison,
+            game,
+            error,
+          });
+        }
+      }
+    },
+    [queryClient, retireExcludedComparison, session],
+  );
+
   const choose = useCallback(
     (outcome: ComparisonOutcome) => {
-      if (
-        state.kind !== "allocating" ||
-        !allocation.data ||
-        submissionLock.current
-      )
-        return;
+      if (!interactiveComparison || submissionLock.current) return;
       submissionLock.current = true;
-      void sendOutcome(allocation.data, outcome);
+      void sendOutcome(interactiveComparison, outcome);
     },
-    [allocation.data, sendOutcome, state.kind],
+    [interactiveComparison, sendOutcome],
+  );
+
+  const exclude = useCallback(
+    (game: Comparison["left"]) => {
+      if (!interactiveComparison || submissionLock.current) return;
+      submissionLock.current = true;
+      void sendExclusion(interactiveComparison, game);
+    },
+    [interactiveComparison, sendExclusion],
   );
 
   const retryOutcome = useCallback(() => {
     if (state.kind !== "uncertain") return;
     void sendOutcome(state.comparison, state.outcome);
   }, [sendOutcome, state]);
+
+  const retryExclusion = useCallback(() => {
+    if (
+      state.kind !== "exclusion-rejected" &&
+      state.kind !== "exclusion-uncertain"
+    )
+      return;
+    submissionLock.current = true;
+    void sendExclusion(state.comparison, state.game);
+  }, [sendExclusion, state]);
+
+  const retryRetirement = useCallback(() => {
+    if (state.kind !== "retirement-uncertain") return;
+    void retireExcludedComparison(state.comparison, state.game);
+  }, [retireExcludedComparison, state]);
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -275,12 +431,10 @@ export function ComparePage() {
   const comparison =
     state.kind === "allocating"
       ? (allocation.data ?? state.previous)
-      : state.kind === "submitting" ||
-          state.kind === "uncertain" ||
-          state.kind === "recorded"
-        ? state.comparison
-        : undefined;
-  const locked = !(state.kind === "allocating" && allocation.isSuccess);
+      : state.kind === "stale"
+        ? undefined
+        : state.comparison;
+  const locked = !interactiveComparison;
   const status = (() => {
     switch (state.kind) {
       case "allocating":
@@ -297,6 +451,18 @@ export function ComparePage() {
         return state.result.outcome === "SKIP"
           ? copy.compare.status.skipped
           : copy.compare.status.recorded(outcomeLabels[state.result.outcome]);
+      case "excluding":
+        return copy.compare.exclusion.excluding(state.game.name);
+      case "exclusion-rejected":
+        return copy.compare.exclusion.rejected(state.game.name);
+      case "exclusion-uncertain":
+        return copy.compare.exclusion.uncertain(state.game.name);
+      case "retiring":
+        return copy.compare.exclusion.retiring(state.game.name);
+      case "retirement-uncertain":
+        return copy.compare.exclusion.retirementUncertain(state.game.name);
+      case "excluded":
+        return copy.compare.exclusion.excluded(state.game.name);
       default:
         return "";
     }
@@ -338,41 +504,40 @@ export function ComparePage() {
             <p className={styles.expiryWarning}>{expiry.text}</p>
           ) : null}
           <div className={styles.comparisonGrid}>
-            <ComparisonCard
+            <ComparisonChoice
               comparison={comparison}
               side="left"
               disabled={locked}
               onChoose={() => choose("LEFT_WIN")}
+              onExclude={() => exclude(comparison.left)}
             />
-            <p className={styles.versus} aria-hidden="true">
-              or
-            </p>
-            <ComparisonCard
+            <div className={styles.comparisonActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                aria-label="Draw"
+                disabled={locked}
+                onClick={() => choose("DRAW")}
+              >
+                Draw <kbd>W</kbd>
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                aria-label="Skip"
+                disabled={locked}
+                onClick={() => choose("SKIP")}
+              >
+                Skip <kbd>S</kbd>
+              </button>
+            </div>
+            <ComparisonChoice
               comparison={comparison}
               side="right"
               disabled={locked}
               onChoose={() => choose("RIGHT_WIN")}
+              onExclude={() => exclude(comparison.right)}
             />
-          </div>
-          <div className={styles.comparisonActions}>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              aria-label="Draw"
-              disabled={locked}
-              onClick={() => choose("DRAW")}
-            >
-              Draw <kbd>D</kbd>
-            </button>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              aria-label="Skip"
-              disabled={locked}
-              onClick={() => choose("SKIP")}
-            >
-              Skip <kbd>S</kbd>
-            </button>
           </div>
           <p
             className={styles.comparisonStatus}
@@ -386,6 +551,23 @@ export function ComparePage() {
               error={state.error}
               onRetry={retryOutcome}
               retryLabel={copy.compare.retry(outcomeLabels[state.outcome])}
+            />
+          ) : null}
+          {state.kind === "exclusion-rejected" ||
+          state.kind === "exclusion-uncertain" ? (
+            <ProblemNotice
+              error={state.error}
+              onRetry={retryExclusion}
+              retryLabel={copy.compare.exclusion.retry(state.game.name)}
+            />
+          ) : null}
+          {state.kind === "retirement-uncertain" ? (
+            <ProblemNotice
+              error={state.error}
+              onRetry={retryRetirement}
+              retryLabel={copy.compare.exclusion.retryRetirement(
+                state.game.name,
+              )}
             />
           ) : null}
           <details className={styles.comparisonDetails}>

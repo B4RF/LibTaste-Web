@@ -12,7 +12,8 @@ const profile = {
 const portal = {
   appId: 400,
   name: "Portal",
-  artworkUrl: "https://cdn.example.test/portal.jpg",
+  artworkUrl:
+    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
   playtimeMinutes: 125,
   currentlyOwned: true,
   eligibilityOverride: "DEFAULT",
@@ -43,10 +44,13 @@ async function configureAuthenticatedLibrary(page: Page) {
     });
   });
   await page.route("**/api/v1/me", (route) => route.fulfill({ json: profile }));
-  await page.goto("/");
-  await page.evaluate(() => {
-    document.cookie = "libtaste_csrf=e2e-csrf; path=/";
-  });
+  await page.context().addCookies([
+    {
+      name: "libtaste_csrf",
+      value: "e2e-csrf",
+      url: "http://127.0.0.1:4173",
+    },
+  ]);
   return () => tokenRequests;
 }
 
@@ -88,11 +92,35 @@ test("library pagination and eligibility remain server-authoritative", async ({
     });
   });
 
-  await page.getByRole("link", { name: "Library" }).click();
+  await page.goto("/library");
   await expect.poll(tokenRequests, { timeout: 10_000 }).toBe(1);
   await expect(page.getByRole("heading", { name: "Portal" })).toBeVisible({
     timeout: 10_000,
   });
+  const primaryNavigation = page.getByRole("navigation", {
+    name: "Primary navigation",
+  });
+  await expect(
+    primaryNavigation.getByRole("link", { name: "Library" }),
+  ).toHaveCount(0);
+  const profileButton = page.getByRole("button", {
+    name: "Browser Pilot profile",
+  });
+  await profileButton.click();
+  await expect(profileButton.locator("xpath=..").getByRole("link")).toHaveText([
+    "Open Steam profile ↗",
+    "Library",
+    "Account & Security",
+  ]);
+  await expect(page.getByRole("link", { name: "Library" })).toHaveAttribute(
+    "href",
+    "/library",
+  );
+  await expect(
+    page.getByRole("link", {
+      name: "Open Portal on Steam (opens in a new tab)",
+    }),
+  ).toHaveAttribute("href", "https://store.steampowered.com/app/400");
   await page.getByRole("button", { name: "Load more" }).click();
   await expect.poll(() => secondPageRequests, { timeout: 10_000 }).toBe(1);
   await expect(page.getByRole("heading", { name: "Hades" })).toBeVisible({
@@ -130,7 +158,7 @@ test("library filters are server-backed, URL-addressable, and retained for pagin
     });
   });
 
-  await page.getByRole("link", { name: "Library" }).click();
+  await page.goto("/library");
   await page.getByRole("searchbox", { name: "Game name" }).fill("Portal");
   await page
     .getByRole("combobox", { name: "Effective eligibility" })

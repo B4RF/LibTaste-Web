@@ -5,10 +5,12 @@ export function Artwork({
   src,
   name,
   kind = "artwork",
+  link,
 }: {
   src?: string | null;
   name: string;
   kind?: "artwork" | "avatar";
+  link?: { href: string; label: string };
 }) {
   const [failedSrc, setFailedSrc] = useState<string>();
   const className =
@@ -24,7 +26,7 @@ export function Artwork({
       </span>
     );
   }
-  return (
+  const image = (
     <img
       className={kind === "avatar" ? styles.avatar : styles.artwork}
       src={src!}
@@ -33,5 +35,18 @@ export function Artwork({
       decoding="async"
       onError={() => setFailedSrc(src)}
     />
+  );
+  return link ? (
+    <a
+      className={styles.artworkLink}
+      href={link.href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={link.label}
+    >
+      {image}
+    </a>
+  ) : (
+    image
   );
 }

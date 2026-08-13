@@ -107,6 +107,39 @@ function renderLibrary(fetcher: typeof fetch, route = "/library") {
 }
 
 describe("Steam library", () => {
+  it("links available artwork to the exact official Steam page and removes the link after image failure", async () => {
+    const fetcher = authenticatedFetcher((url) => {
+      if (url.pathname.endsWith("/me")) return json(profile);
+      if (url.pathname.endsWith("/me/library"))
+        return json({ items: [portal] });
+      throw new Error(`Unexpected request: GET ${url}`);
+    });
+    renderLibrary(fetcher, "/library?name=Portal");
+
+    const storeLink = await screen.findByRole("link", {
+      name: "Open Portal on Steam (opens in a new tab)",
+    });
+    expect(storeLink).toHaveAttribute(
+      "href",
+      "https://store.steampowered.com/app/400",
+    );
+    expect(storeLink).toHaveAttribute("target", "_blank");
+    expect(storeLink).toHaveAttribute("rel", "noreferrer");
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/library?name=Portal",
+    );
+
+    fireEvent.error(screen.getByRole("img", { name: "Portal artwork" }));
+    expect(
+      screen.queryByRole("link", {
+        name: "Open Portal on Steam (opens in a new tab)",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Portal artwork unavailable" }),
+    ).toBeVisible();
+  });
+
   it("invalidates recommendations after a library eligibility change", async () => {
     const fetcher = authenticatedFetcher((url, init) => {
       if (url.pathname.endsWith("/me")) return json(profile);

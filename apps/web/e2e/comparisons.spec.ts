@@ -102,24 +102,25 @@ test("every outcome preserves orientation, locks rapidly, and advances", async (
   await page.getByRole("link", { name: "Compare" }).click();
   const left = page.getByRole("button", { name: /portal choose left/i });
   await expect(left).toBeVisible();
-  await left.evaluate((button: HTMLButtonElement) => {
-    button.click();
-    button.click();
-  });
+  await page.getByRole("main").focus();
+  await page.keyboard.press("a");
+  await page.keyboard.press("A");
   await expect(
     page.getByRole("button", { name: /hades choose left/i }),
   ).toBeVisible();
 
   await page.getByRole("main").focus();
-  await page.keyboard.press("r");
+  await page.keyboard.press("D");
   await expect(
     page.getByRole("button", { name: /celeste choose left/i }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Draw" }).click();
+  await page.getByRole("main").focus();
+  await page.keyboard.press("w");
   await expect(
     page.getByRole("button", { name: /disco elysium choose left/i }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Skip" }).click();
+  await page.getByRole("main").focus();
+  await page.keyboard.press("S");
   await expect(page.getByText(/no rating change is claimed/i)).toBeVisible();
 
   expect(requests.map(({ outcome }) => outcome)).toEqual([
@@ -130,6 +131,67 @@ test("every outcome preserves orientation, locks rapidly, and advances", async (
   ]);
   expect(requests[0].id).toBe(comparison(0).comparisonId);
   expect(requests).toHaveLength(4);
+});
+
+test("a displayed game can be excluded without leaving Compare", async ({
+  page,
+}) => {
+  await configureAuthenticatedCompare(page);
+  let allocation = 0;
+  const requests: Array<{ path: string; body: unknown }> = [];
+  await page.route("**/api/v1/comparisons/next", (route) =>
+    route.fulfill({ json: comparison(allocation++) }),
+  );
+  await page.route("**/api/v1/me/library/*/eligibility", (route) => {
+    requests.push({
+      path: new URL(route.request().url()).pathname,
+      body: route.request().postDataJSON(),
+    });
+    return route.fulfill({
+      json: {
+        ...comparison(0).left,
+        currentlyOwned: true,
+        playtimeMinutes: 120,
+        eligibilityOverride: "EXCLUDED",
+        effectivelyEligible: false,
+      },
+    });
+  });
+  await page.route("**/api/v1/comparisons/*/result", (route) => {
+    requests.push({
+      path: new URL(route.request().url()).pathname,
+      body: route.request().postDataJSON(),
+    });
+    return route.fulfill({
+      json: {
+        comparisonId: comparison(0).comparisonId,
+        outcome: "SKIP",
+        completedAt: "2026-08-13T09:00:00Z",
+      },
+    });
+  });
+
+  await page.getByRole("link", { name: "Compare" }).click();
+  await page
+    .getByRole("button", { name: "Exclude Portal from comparisons" })
+    .click();
+
+  await expect(
+    page.getByText(/excluded portal.*no rating change/i),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /hades choose left/i }),
+  ).toBeEnabled();
+  expect(requests).toEqual([
+    {
+      path: "/api/v1/me/library/400/eligibility",
+      body: { behavior: "EXCLUDED" },
+    },
+    {
+      path: `/api/v1/comparisons/${comparison(0).comparisonId}/result`,
+      body: { outcome: "SKIP" },
+    },
+  ]);
 });
 
 test("an uncertain outcome retries the identical request", async ({ page }) => {
@@ -236,7 +298,7 @@ test("shortcuts respect focus and touch targets at 360px", async ({ page }) => {
   await page.getByRole("link", { name: "Compare" }).click();
   const draw = page.getByRole("button", { name: "Draw" });
   await draw.focus();
-  await page.keyboard.press("l");
+  await page.keyboard.press("a");
   expect(submissions).toBe(0);
   expect(
     await draw.evaluate((button) => getComputedStyle(button).minHeight),
@@ -275,16 +337,82 @@ test("the compact comparison stage stays visible and stable while advancing", as
       },
     }),
   );
+  await page.route("https://cdn.example.test/**", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900"><rect width="1600" height="900" fill="#123b4a"/></svg>',
+    }),
+  );
 
   await page.getByRole("link", { name: "Compare" }).click();
   const draw = page.getByRole("button", { name: "Draw" });
   const skip = page.getByRole("button", { name: "Skip" });
+  const excludeLeft = page.getByRole("button", {
+    name: "Exclude Portal from comparisons",
+  });
+  const excludeRight = page.getByRole("button", {
+    name: "Exclude Right 1 from comparisons",
+  });
+  const viewLeft = page.getByRole("link", {
+    name: "View Portal on Steam (opens in a new tab)",
+  });
+  const viewRight = page.getByRole("link", {
+    name: "View Right 1 on Steam (opens in a new tab)",
+  });
+  const leftChoice = page.getByRole("button", {
+    name: "Portal choose left",
+  });
+  const rightChoice = page.getByRole("button", {
+    name: "Right 1 choose right",
+  });
   await expect(draw).toBeVisible();
   await expect(skip).toBeVisible();
+  await expect(excludeLeft).toBeVisible();
+  await expect(excludeRight).toBeVisible();
+  await expect(viewLeft).toBeVisible();
+  await expect(viewRight).toBeVisible();
+  const leftBox = (await leftChoice.boundingBox())!;
+  const drawBox = (await draw.boundingBox())!;
+  const skipBox = (await skip.boundingBox())!;
+  const rightBox = (await rightChoice.boundingBox())!;
+  expect(leftBox.x + leftBox.width).toBeLessThan(drawBox.x);
+  expect(drawBox.x + drawBox.width).toBeLessThan(rightBox.x);
+  expect(skipBox.y - (drawBox.y + drawBox.height)).toBeLessThanOrEqual(8);
+  expect(drawBox.width).toBeLessThan(96);
+  expect(skipBox.width).toBeLessThan(96);
+  const leftArtwork = page.getByRole("img", { name: "Portal artwork" });
+  await expect(leftArtwork).toBeVisible();
+  const artworkBox = (await leftArtwork.boundingBox())!;
+  expect(artworkBox.width).toBeGreaterThan(350);
+  expect(artworkBox.height).toBeGreaterThan(180);
+  expect(
+    await leftArtwork.evaluate((image) => getComputedStyle(image).objectFit),
+  ).toBe("contain");
+  await expect(viewLeft).toHaveAttribute(
+    "href",
+    "https://store.steampowered.com/app/400",
+  );
   await expect(page.getByText(comparison(0).comparisonId)).toBeHidden();
-  await expect(page.getByText(/Press L for the left game/)).toBeHidden();
+  await expect(page.getByText(/Press A for the left game/)).toBeHidden();
   const initialTop = (await draw.boundingBox())!.y;
   expect((await skip.boundingBox())!.y).toBeLessThan(720);
+  expect((await excludeLeft.boundingBox())!.y).toBeLessThan(720);
+  expect((await excludeRight.boundingBox())!.y).toBeLessThan(720);
+  expect((await viewLeft.boundingBox())!.y).toBeLessThan(720);
+  expect((await viewRight.boundingBox())!.y).toBeLessThan(720);
+  expect(
+    await excludeLeft.evaluate((button) => getComputedStyle(button).minHeight),
+  ).toBe("44px");
+  expect(
+    await viewLeft.evaluate((link) => getComputedStyle(link).minHeight),
+  ).toBe("44px");
+  expect(
+    await draw.evaluate((button) => getComputedStyle(button).borderColor),
+  ).not.toBe(
+    await excludeLeft.evaluate(
+      (button) => getComputedStyle(button).borderColor,
+    ),
+  );
 
   await draw.click();
   await expect(page.getByText(/loading the next comparison/i)).toBeVisible();

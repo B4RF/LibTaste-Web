@@ -67,6 +67,9 @@ owned game's comparison eligibility with clear, server-confirmed feedback.
   issue one request per keystroke.
 - **FR-012:** Filtered pagination shall apply the same filter combination to every continuation request, preserve server
   order, and show a distinct no-matches state without implying that the imported library itself is empty.
+- **FR-013:** Each library entry's available artwork shall link to the official Steam store page derived from its App ID.
+  The link shall open in a new tab, identify the game and external destination accessibly, and remain separate from
+  eligibility controls. Missing artwork shall retain the existing neutral fallback without fabricating an image link.
 
 ## Non-functional requirements
 
@@ -80,6 +83,8 @@ owned game's comparison eligibility with clear, server-confirmed feedback.
   availability and synchronization timing shall be deterministic in automated tests.
 - **NFR-005:** Filtering shall be performed by `GET /me/library` rather than only against already loaded client pages;
   the API shall bind opaque cursors to the active filter combination and reject incompatible cursor/filter reuse.
+- **NFR-006:** Steam store destinations shall be constructed only as `https://store.steampowered.com/app/{appId}` from
+  the contract-valid App ID and shall use safe external-link attributes without adding visit tracking.
 
 ## Acceptance scenarios
 
@@ -159,6 +164,13 @@ from Default, Included, and Excluded override behavior
 **Then** continuation uses the unchanged filter combination, while the filter change discards old pages and starts a
 new first-page request with a truthful filtered-empty state when no games match
 
+### AC-013: Open a library game on Steam
+
+**Given** a current or historical library entry has artwork and a contract-valid App ID
+**When** the user activates its artwork link
+**Then** the official Steam store page for that App ID opens in a new tab without changing eligibility or losing the
+current Library route and filters
+
 ## Interfaces and data
 
 - Consumes `GET /api/v1/me`, filtered `GET /api/v1/me/library`, `GET|POST /api/v1/me/library-sync`, and
@@ -168,6 +180,7 @@ new first-page request with a truthful filtered-empty state when no games match
 - Uses opaque cursors only as returned continuation values and never parses, fabricates, persists, or displays them.
 - `GET /api/v1/me/library` accepts optional `name`, `effectivelyEligible`, and `eligibilityOverride` query parameters;
   `name` is a case-insensitive substring match and each continuation cursor is valid only with its originating filters.
+- Constructs official store destinations as `https://store.steampowered.com/app/{appId}` without persisting a visit.
 
 ## Compatibility and rollout
 
@@ -178,13 +191,15 @@ rather than treating them as successful or exposing raw payloads.
 ## Related specifications and conflicts
 
 - SPEC-0001 provides session, transport, visual, and error-handling behavior.
-- SPEC-0003 consumes effective eligibility and synchronization outcomes but does not modify library state.
+- SPEC-0003 consumes synchronization outcomes and reuses the server-confirmed `EXCLUDED` update for a displayed
+  comparison game without duplicating Library's full eligibility controls.
 - SPEC-0004 may show ownership and eligibility values from leaderboard responses; the server remains authoritative.
 - SPEC-0005 clears profile and library caches after logout or account deletion.
 
 ## Open questions and assumptions
 
-None.
+- Assumption for approval: only available artwork is linked; the fallback remains non-interactive so it does not imply
+  that an unavailable image loaded successfully.
 
 ## Implementation notes
 
@@ -209,10 +224,12 @@ None.
 | AC-010 | Component/browser contract test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
 | AC-011 | Component/browser contract test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
 | AC-012 | Component/browser pagination test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
+| AC-013 | Component/browser external-link test | `apps/web/src/features/library/LibraryPage.test.tsx`, `apps/web/e2e/library.spec.ts` — available artwork opens the exact Steam app URL in a new tab and failed artwork removes the link | Passed 2026-08-13 |
 | NFR-002 | Timer and visibility test | `apps/web/src/features/library/syncPolling.test.ts` | Passed 2026-08-10 |
 | NFR-003 | Performance-oriented component test | `apps/web/src/features/library/LibraryPage.test.tsx` (100 contract-shaped lazy-rendered entries) | Passed 2026-08-10 |
 | NFR-004 | Contract fixture review | Typed fixtures in `apps/web/src/features/library/LibraryPage.test.tsx` and `apps/web/e2e/library.spec.ts` | Passed 2026-08-12 |
 | NFR-005 | Contract and request-boundary tests | `apps/web/src/features/library/LibraryPage.test.tsx`, generated OpenAPI drift check | Passed 2026-08-12 |
+| NFR-006 | External-destination test | `LibraryPage.test.tsx` exact URL, `target="_blank"`, `rel="noreferrer"`, and in-app location isolation assertions | Passed 2026-08-13 |
 
 ## Verification commands
 
@@ -228,6 +245,9 @@ None.
 | Focused profile-avatar and application navigation component tests | Passed (12 tests) | 2026-08-13 |
 | Grouped-navigation Playwright journey in Chromium | Passed | 2026-08-13 |
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 93 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-13 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 100 tests, coverage (90.43% statements, 84.52% branches, 92.17% functions, 92.59% lines), OpenAPI drift check, and production build | 2026-08-13 |
+| Full Playwright matrix | Passed: 105 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-13 |
+| `node scripts/validate-specs.mjs` | Passed after verification evidence and lifecycle update | 2026-08-13 |
 
 ## Completion checklist
 

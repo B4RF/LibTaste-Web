@@ -50,16 +50,18 @@ The check fails with the regeneration command if the committed representation is
 
 ## Steam profile and library
 
-Authenticated routes place Steam identity, the external profile link, and Account & Security in a compact profile
-disclosure. Only active or failed library synchronization occupies persistent shell space. Active durable jobs poll with
-bounded backoff, pause in hidden documents, and stop after success, failure, or sign-out. The Library route:
+Authenticated routes place the external Steam profile link first, Library second, and Account & Security last in a
+compact profile disclosure. Only active or failed library synchronization occupies persistent shell space. Active
+durable jobs poll with bounded backoff, pause in hidden documents, and stop after success, failure, or sign-out. The
+Library route:
 
 - explains private or unavailable Steam game details and links to official Steam privacy guidance;
 - supports one-at-a-time manual synchronization with safe cooldown and Problem Details feedback;
 - sends URL-addressable name, effective-eligibility, and explicit-override filters to the API and retains them for every
   opaque cursor request;
 - appends opaque cursor pages in server order while retaining successful content after later failures;
-- renders artwork lazily and uses off-viewport containment for pages of up to 100 games; and
+- renders artwork lazily, links available artwork to the exact Steam store page in a new tab, and uses off-viewport
+  containment for pages of up to 100 games; and
 - changes Default, Include, or Exclude eligibility without replacing the displayed server-confirmed state until the API
   succeeds.
 
@@ -69,9 +71,15 @@ The protected Compare route restores the exact server-issued left/right pair and
 `DRAW`, or `SKIP` immediately. Outcome controls lock synchronously, uncertain requests can only retry the identical
 comparison ID and outcome, and successful submissions briefly announce the result before requesting the next pair.
 The previous pair remains in a locked, stable stage while that next allocation is pending, avoiding a collapse-induced
-scroll jump. Comparison metadata, ordinary expiry, and shortcut help use accessible disclosures below the controls.
+scroll jump. Either displayed game can also be excluded directly: Compare confirms the server-backed `EXCLUDED`
+eligibility update, retires the current pair as `SKIP` without a rating change, and loads the next pair. Uncertain
+exclusion and retirement requests expose only their safe identical retry. Comparison metadata, ordinary expiry, and
+shortcut help use accessible disclosures below the controls. Large landscape artwork uses contained scaling to avoid
+cropping, with compact Draw and Skip controls stacked between the two game choices. Comparison outcomes remain visually
+stronger than the one-time-per-game Exclude utilities, and each game offers a quiet link to its exact Steam store page
+in a new tab.
 
-Keyboard shortcuts are L for left, R for right, D for draw, and S for skip. They remain inactive when another
+Keyboard shortcuts use the familiar WASD layout: W for draw, A for left, S for skip, and D for right. They remain inactive when another
 interactive or text-entry control has focus. Expired or conflicting pairs are discarded, and allocation failures expose
 distinct synchronization, eligibility, rate-limit, and no-pair recovery states using stable Problem Details types.
 

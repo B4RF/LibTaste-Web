@@ -10,6 +10,8 @@ export type PersonalLeaderboardEntry =
 export type PersonalLeaderboardPageData =
   components["schemas"]["PersonalLeaderboardPage"];
 
+export const personalLeaderboardQueryKey = ["leaderboard", "personal"] as const;
+
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
