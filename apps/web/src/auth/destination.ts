@@ -1,6 +1,13 @@
 export const DEFAULT_PROTECTED_DESTINATION = "/compare";
 
-const protectedRoots = ["/compare", "/leaderboard/me", "/library", "/settings"];
+const protectedRoots = [
+  "/compare",
+  "/recommendations",
+  "/leaderboard/me",
+  "/leaderboard/friends",
+  "/library",
+  "/settings",
+];
 
 export function safeProtectedDestination(
   value: string | null | undefined,

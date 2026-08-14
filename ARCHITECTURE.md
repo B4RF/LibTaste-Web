@@ -25,6 +25,7 @@ flowchart TD
 3. Expose the following actions:
    - Select winner of pairwise game comparisons
    - Show user library leaderboard
+   - Discover opted-in Steam friends and show their reduced leaderboards
    - Show global game leaderboard
 
 ## Tech stack & rationale

@@ -52,6 +52,9 @@ describe("application routes", () => {
       within(navigation).getByRole("link", { name: "My ranking" }),
     ).toHaveAttribute("href", "/leaderboard/me");
     expect(
+      within(navigation).getByRole("link", { name: "Friends" }),
+    ).toHaveAttribute("href", "/leaderboard/friends");
+    expect(
       within(navigation).getByRole("link", { name: "Global" }),
     ).toHaveAttribute("href", "/leaderboard/global");
     await userEvent.keyboard("{Escape}");
@@ -73,6 +76,21 @@ describe("application routes", () => {
       expect.stringContaining("/me/recommendations"),
       expect.anything(),
     );
+  });
+
+  it("guards a copied friend-ranking route without exposing friend data", async () => {
+    document.cookie = "libtaste_csrf=; Max-Age=0; path=/";
+    const fetcher = vi.fn<typeof fetch>();
+    renderRoute(
+      "/leaderboard/friends/11111111-1111-4111-8111-111111111111",
+      new SessionManager(config, { fetcher }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in to continue" }),
+    ).toBeVisible();
+    expect(screen.queryByText(/friend ranking/i)).not.toBeInTheDocument();
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("renders an accessible public landing page with two truthful actions at 360px", async () => {

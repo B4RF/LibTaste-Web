@@ -1,8 +1,8 @@
 # LibTaste web application
 
 React and TypeScript single-page application for the public LibTaste landing surface, Steam authentication, Steam
-profile and library management, pairwise game comparisons, personalized recommendations, personal and global game
-leaderboards, and account/security controls.
+profile and library management, pairwise game comparisons, personalized recommendations, personal, Steam-friend, and
+global game leaderboards, and account/security controls.
 
 ## Development
 
@@ -86,8 +86,8 @@ distinct synchronization, eligibility, rate-limit, and no-pair recovery states u
 ## Game leaderboards
 
 The public Global route reads the contributed-games leaderboard without restoring a session, sending credentials, or
-creating user-scoped cache data. The protected My Ranking route defaults to currently owned games and can replace that
-view with a first-page historical request. Both leaderboards:
+creating user-scoped cache data. The protected My Ranking route displays every current game plus ranked historical
+games automatically, without a client-side history filter. Both leaderboards:
 
 - preserve the API's rank and entry order while appending opaque cursor pages;
 - retain completed pages and retry the same cursor after a later-page failure;
@@ -95,6 +95,15 @@ view with a first-page historical request. Both leaderboards:
 - render lazy artwork, status, evidence counts, and locale-aware scores with at most two fractional digits in responsive
   semantic tables; and
 - give a concise score distinction up front while keeping detailed status and non-comparability help in a disclosure.
+
+Friend leaderboard sharing is disabled by default and controlled from Account & Security. Enabling it allows a user to
+discover current Steam friends who also opted in and open their deliberately scoreless ranked-game order. Steam friends
+are fetched only when a friend feature is opened; successful relationship data is cached by the API for no more than
+15 minutes. Friend pages expose only opaque route identifiers, display name, optional Steam profile presentation, and
+ranked game order. Disabling sharing immediately cancels and removes friend data from the browser cache.
+When Steam reports that the signed-in user's friend list is private, the Friends route explains how to open Steam's
+Profile, Edit Profile, and Privacy Settings controls, set Friends List to Public, follow official Steam privacy help,
+and retry discovery.
 
 ## Game recommendations
 
@@ -109,11 +118,11 @@ variation, insufficient community evidence, or an exhausted eligible catalog.
 
 ## Account and security
 
-The protected Account & Security route (kept at `/settings`) can end the current browser session, explicitly confirm
-revocation of every LibTaste
-session, or permanently delete the LibTaste account after exact `DELETE` confirmation. Destructive requests use bearer,
-credential, and CSRF protection and are sent only once; an uncertain deletion checks ordinary cookie-backed session
-state without automatically repeating the request.
+The protected Account & Security route (kept at `/settings`) controls reciprocal friend-leaderboard sharing, can end the
+current browser session, explicitly confirm revocation of every LibTaste session, or permanently delete the LibTaste
+account after exact `DELETE` confirmation. Destructive requests use bearer, credential, and CSRF protection and are
+sent only once; an uncertain deletion checks ordinary cookie-backed session state without automatically repeating the
+request.
 
 Confirmed session clearing cancels protected queries and polling, removes user-scoped profile, library, comparison, and
 personal-leaderboard caches, clears transient PKCE data, and leaves only non-sensitive public caches such as the global

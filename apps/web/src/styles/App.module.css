@@ -678,23 +678,6 @@
   color: var(--color-text);
 }
 
-.historyToggle {
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-small);
-  font-weight: 750;
-  white-space: nowrap;
-}
-
-.historyToggle input {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
 .leaderboardTableRegion {
   max-width: 100%;
   overflow-x: auto;
@@ -744,6 +727,26 @@
 
 .leaderboardArtwork > * {
   min-width: 5rem;
+}
+
+.friendTable,
+.friendRankingTable {
+  min-width: 32rem;
+}
+
+.friendAvatar {
+  width: 5rem;
+}
+
+.friendAvatar > * {
+  width: 3rem;
+  height: 3rem;
+}
+
+.friendActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 
 .comparePage {
@@ -1017,6 +1020,14 @@ kbd {
   color: var(--color-muted);
 }
 
+.sharingCard {
+  max-width: 62rem;
+}
+
+.sharingCard p {
+  flex: initial;
+}
+
 .dangerCard {
   border-color: var(--color-danger);
 }
@@ -1141,10 +1152,6 @@ kbd {
   .leaderboardHeader {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .historyToggle {
-    align-self: flex-start;
   }
 
   .comparisonGrid {

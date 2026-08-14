@@ -8,6 +8,10 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ### Changed
 
+- Friend leaderboard recovery now explains how to make a Steam friends list public and links to official Steam privacy
+  guidance.
+- Personal rankings now include ranked historical games automatically and no longer send or display the removed
+  historical-games option.
 - Changed Compare keyboard shortcuts to the gamer-familiar WASD layout: W for draw, A for left, S for skip, and D for
   right.
 - Grouped personal/global rankings under an accessible Leaderboards disclosure and moved Steam profile plus account
@@ -23,6 +27,8 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ### Added
 
+- Added private-by-default reciprocal Steam-friend leaderboard sharing, participating-friend discovery, and protected
+  scoreless friend rankings with opaque cursor pagination and immediate browser-cache revocation on opt-out.
 - Added one-click exclusion for either game on Compare, with server-confirmed eligibility, no-rating matchup
   retirement, automatic advancement, and safe partial-failure retries.
 - Added exact Steam store links from available Library artwork and quiet per-game links in Compare matchups.

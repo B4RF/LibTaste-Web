@@ -24,6 +24,8 @@ import type { RuntimeConfig } from "../config";
 import { copy } from "../content/copy";
 import { ComparePage } from "../features/comparisons/ComparePage";
 import {
+  FriendLeaderboardPage,
+  FriendsLeaderboardPage,
   GlobalLeaderboardPage,
   PersonalLeaderboardPage,
 } from "../features/leaderboards/LeaderboardPage";
@@ -49,6 +51,10 @@ const protectedPages = [
   {
     path: "/leaderboard/me",
     label: copy.navigation.personalRanking,
+  },
+  {
+    path: "/leaderboard/friends",
+    label: copy.navigation.friends,
   },
   {
     path: "/library",
@@ -236,6 +242,11 @@ function Shell({
                       </NavLink>
                     </li>
                     <li>
+                      <NavLink to="/leaderboard/friends" onClick={close}>
+                        {copy.navigation.friends}
+                      </NavLink>
+                    </li>
+                    <li>
                       <NavLink to="/leaderboard/global" onClick={close}>
                         {copy.navigation.global}
                       </NavLink>
@@ -294,6 +305,8 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
                   <RecommendationsPage />
                 ) : page.path === "/leaderboard/me" ? (
                   <PersonalLeaderboardPage />
+                ) : page.path === "/leaderboard/friends" ? (
+                  <FriendsLeaderboardPage />
                 ) : page.path === "/library" ? (
                   <LibraryPage />
                 ) : (
@@ -303,6 +316,14 @@ export function ApplicationRoutes({ config }: { config: RuntimeConfig }) {
             }
           />
         ))}
+        <Route
+          path="/leaderboard/friends/:friendId"
+          element={
+            <ProtectedRoute config={config}>
+              <FriendLeaderboardPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Shell>

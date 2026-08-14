@@ -13,6 +13,12 @@ import { ProblemNotice } from "../../components/ProblemNotice";
 import { copy } from "../../content/copy";
 import styles from "../../styles/App.module.css";
 import {
+  friendLeaderboardDataQueryKey,
+  friendLeaderboardSharingQueryKey,
+  getFriendLeaderboardSharing,
+  updateFriendLeaderboardSharing,
+} from "../leaderboards/leaderboardApi";
+import {
   deleteAccount,
   logoutAllSessions,
   logoutCurrentSession,
@@ -83,6 +89,7 @@ function ConfirmationDialog({
 
 export function SettingsPage() {
   const { clearSession, session } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<DialogKind | null>(null);
   const [pending, setPending] = useState<PendingAction>(null);
@@ -91,6 +98,31 @@ export function SettingsPage() {
   const [uncertain, setUncertain] = useState<string>();
   const logoutAllOpener = useRef<HTMLButtonElement>(null);
   const deleteOpener = useRef<HTMLButtonElement>(null);
+  const sharingPending = useRef(false);
+  const sharingQuery = useQuery({
+    queryKey: friendLeaderboardSharingQueryKey,
+    queryFn: ({ signal }) => getFriendLeaderboardSharing(session, signal),
+    meta: { scope: "user" },
+  });
+  const sharingMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      updateFriendLeaderboardSharing(session, enabled),
+    onMutate: () => {
+      sharingPending.current = true;
+    },
+    onSuccess: async (sharing) => {
+      if (!sharing.enabled) {
+        await queryClient.cancelQueries({
+          queryKey: friendLeaderboardDataQueryKey,
+        });
+        queryClient.removeQueries({ queryKey: friendLeaderboardDataQueryKey });
+      }
+      queryClient.setQueryData(friendLeaderboardSharingQueryKey, sharing);
+    },
+    onSettled: () => {
+      sharingPending.current = false;
+    },
+  });
 
   function openDialog(kind: DialogKind) {
     setError(undefined);
@@ -182,6 +214,51 @@ export function SettingsPage() {
         <h1 id="settings-title">{copy.routes.settings}</h1>
         <p className={styles.lede}>{copy.settings.summary}</p>
       </header>
+
+      <article className={`${styles.settingsCard} ${styles.sharingCard}`}>
+        <h2>{copy.settings.sharing.title}</h2>
+        <p>{copy.settings.sharing.detail}</p>
+        <p>{copy.settings.sharing.privacy}</p>
+        {sharingQuery.isPending ? (
+          <p role="status">{copy.settings.sharing.loading}</p>
+        ) : sharingQuery.isError ? (
+          <ProblemNotice
+            error={sharingQuery.error}
+            onRetry={() => void sharingQuery.refetch()}
+          />
+        ) : (
+          <>
+            <p role="status">
+              {sharingQuery.data.enabled
+                ? copy.settings.sharing.enabled
+                : copy.settings.sharing.disabled}
+            </p>
+            {sharingMutation.isError ? (
+              <ProblemNotice error={sharingMutation.error} />
+            ) : null}
+            <button
+              className={styles.secondaryButton}
+              type="button"
+              disabled={busy || sharingMutation.isPending}
+              onClick={() => {
+                if (sharingPending.current) return;
+                sharingMutation.mutate(!sharingQuery.data.enabled);
+              }}
+            >
+              {sharingQuery.data.enabled
+                ? copy.settings.sharing.disable
+                : copy.settings.sharing.enable}
+            </button>
+            {sharingMutation.isPending ? (
+              <p role="status">
+                {sharingQuery.data.enabled
+                  ? copy.settings.sharing.disabling
+                  : copy.settings.sharing.enabling}
+              </p>
+            ) : null}
+          </>
+        )}
+      </article>
 
       {error && dialog === null ? <ProblemNotice error={error} /> : null}
 
@@ -313,3 +390,4 @@ export function SettingsPage() {
     </section>
   );
 }
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

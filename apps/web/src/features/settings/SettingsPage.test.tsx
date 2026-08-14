@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { MemoryRouter } from "react-router-dom";
@@ -54,15 +55,22 @@ function problem(status: number, title: string, requestId: string) {
 function renderSettings(fetcher: typeof fetch) {
   document.cookie = "libtaste_csrf=settings-csrf; path=/";
   const session = new SessionManager(config, { fetcher });
+  let queryClient: QueryClient | undefined;
+  function CaptureQueryClient() {
+    queryClient = useQueryClient();
+    return null;
+  }
   return {
     session,
     ...render(
       <ApplicationProviders config={config} session={session}>
+        <CaptureQueryClient />
         <MemoryRouter initialEntries={["/settings"]}>
           <ApplicationRoutes config={config} />
         </MemoryRouter>
       </ApplicationProviders>,
     ),
+    getQueryClient: () => queryClient!,
   };
 }
 
@@ -75,11 +83,79 @@ function standardFetcher(
     if (url.endsWith("/me") && (init?.method ?? "GET") === "GET") {
       return profile();
     }
+    if (
+      url.endsWith("/me/friend-leaderboard-sharing") &&
+      (init?.method ?? "GET") === "GET"
+    ) {
+      return new Response(JSON.stringify({ enabled: false }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     return action(url, init);
   });
 }
 
 describe("SettingsPage", () => {
+  it("keeps confirmed reciprocal sharing state through failure and clears friend data on disable", async () => {
+    let updateAttempts = 0;
+    let resolveFirstUpdate!: (response: Response) => void;
+    const fetcher = standardFetcher((url, init) => {
+      if (
+        url.endsWith("/me/friend-leaderboard-sharing") &&
+        init?.method === "PUT"
+      ) {
+        updateAttempts += 1;
+        if (updateAttempts === 1) {
+          return new Promise<Response>((resolve) => {
+            resolveFirstUpdate = resolve;
+          });
+        }
+        return new Response(JSON.stringify({ enabled: updateAttempts === 2 }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(null, { status: 204 });
+    });
+    const result = renderSettings(fetcher);
+    const user = userEvent.setup();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Friend leaderboard sharing",
+      }),
+    ).toBeVisible();
+    expect(await screen.findByText("Sharing is disabled.")).toBeVisible();
+    expect(
+      screen.getByText(/fetched only when you open friend features/i),
+    ).toBeVisible();
+    const enable = screen.getByRole("button", { name: "Enable sharing" });
+    await user.click(enable);
+    expect(enable).toBeDisabled();
+    await user.click(enable);
+    expect(updateAttempts).toBe(1);
+    resolveFirstUpdate(problem(503, "Sharing unavailable", "req-sharing"));
+    expect(
+      await screen.findByRole("heading", { name: "Sharing unavailable" }),
+    ).toBeVisible();
+    expect(screen.getByText("Sharing is disabled.")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Enable sharing" }),
+    ).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Enable sharing" }));
+    expect(await screen.findByText("Sharing is enabled.")).toBeVisible();
+    result
+      .getQueryClient()
+      .setQueryData(["leaderboard", "friends", "list"], { private: true });
+    await user.click(screen.getByRole("button", { name: "Disable sharing" }));
+    expect(await screen.findByText("Sharing is disabled.")).toBeVisible();
+    expect(
+      result.getQueryClient().getQueryData(["leaderboard", "friends", "list"]),
+    ).toBeUndefined();
+    expect(updateAttempts).toBe(3);
+    expect(await axe(result.container)).toHaveNoViolations();
+  });
+
   it("shows accessible distinct actions and requires exact typed deletion confirmation", async () => {
     const fetcher = standardFetcher(() => new Response(null, { status: 204 }));
     const result = renderSettings(fetcher);

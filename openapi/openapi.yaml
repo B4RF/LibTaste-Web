@@ -168,11 +168,28 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+          description: Trimmed, case-insensitive literal substring of the imported game name.
+        - name: effectivelyEligible
+          in: query
+          schema:
+            type: boolean
+          description: Match the server-derived effective comparison eligibility.
+        - name: eligibilityOverride
+          in: query
+          schema:
+            type: string
+            enum: [DEFAULT, INCLUDED, EXCLUDED]
+          description: Match the stored comparison-eligibility override.
         - name: cursor
           in: query
           schema:
             type: string
-          description: Opaque continuation cursor from the previous response; valid only with the originating filters.
+          description: Opaque, expiring continuation cursor bound to the exact normalized filters.
         - name: limit
           in: query
           schema:
@@ -180,27 +197,9 @@ paths:
             minimum: 1
             maximum: 100
             default: 50
-        - name: name
-          in: query
-          schema:
-            type: string
-            minLength: 1
-            maxLength: 200
-          description: Case-insensitive substring match over imported game names.
-        - name: effectivelyEligible
-          in: query
-          schema:
-            type: boolean
-          description: Match the server-computed effective comparison eligibility.
-        - name: eligibilityOverride
-          in: query
-          schema:
-            type: string
-            enum: [DEFAULT, INCLUDED, EXCLUDED]
-          description: Match the user's explicit comparison-eligibility override behavior.
       responses:
         '200':
-          description: Imported current and historical ownership entries in stable App-ID order.
+          description: Imported entries matching every supplied filter in stable App-ID order.
           content:
             application/json:
               schema:
@@ -289,12 +288,6 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: includeHistorical
-          in: query
-          schema:
-            type: boolean
-            default: false
-          description: Include imported games that are no longer owned.
         - name: cursor
           in: query
           schema:
@@ -309,7 +302,7 @@ paths:
             default: 50
       responses:
         '200':
-          description: Current personal games, and historical games only when explicitly requested.
+          description: All current imported games plus no-longer-owned games that have reached ranked status.
           content:
             application/json:
               schema:
@@ -317,6 +310,137 @@ paths:
         '400':
           $ref: '#/components/responses/Problem'
         '401':
+          $ref: '#/components/responses/Problem'
+  /me/friend-leaderboard-sharing:
+    get:
+      operationId: getMyFriendLeaderboardSharing
+      summary: Read the authenticated user's reciprocal friend-leaderboard sharing setting
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The current setting, which is disabled by default.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendLeaderboardSharing'
+        '401':
+          $ref: '#/components/responses/Problem'
+    put:
+      operationId: updateMyFriendLeaderboardSharing
+      summary: Enable or disable the authenticated user's reciprocal friend-leaderboard sharing
+      description: Disabling takes effect immediately for both inbound and outbound friend access.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FriendLeaderboardSharing'
+      responses:
+        '200':
+          description: The persisted current setting.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendLeaderboardSharing'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /me/friends:
+    get:
+      operationId: getMyParticipatingSteamFriends
+      summary: Discover current Steam friends who also enabled reciprocal leaderboard sharing
+      description: >-
+        Steam friendship is checked from the requester's public Steam list on demand and successful results are cached
+        for no more than 15 minutes. Nonparticipants and unregistered Steam friends are indistinguishable. SteamID64
+        and internal account identifiers are never returned.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Opaque, expiring, requester-bound continuation cursor.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Current registered Steam friends who have sharing enabled, including friends with an empty ranking.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipatingFriendPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '424':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /me/friends/{friendId}/leaderboard:
+    get:
+      operationId: getFriendGameLeaderboard
+      summary: Read one participating current Steam friend's minimal game ranking
+      description: >-
+        Requires reciprocal sharing and friendship proven from the authenticated requester's successful Steam lookup no
+        older than 15 minutes. The response is intentionally scoreless and contains only ranked game order and
+        presentation fields. Invalid, opted-out, deleted, and no-longer-proven targets share one generic not-found error.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: friendId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Server-issued opaque friend identifier; never a SteamID64 or account ID.
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Opaque, expiring cursor bound to requester, friend target, and collection.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Ranked current and historical games with contiguous ranks after privacy filtering.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendLeaderboardPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '424':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
           $ref: '#/components/responses/Problem'
   /me/recommendations:
     get:
@@ -387,12 +511,12 @@ paths:
   /comparisons/next:
     post:
       operationId: getNextComparison
-      summary: Return the active comparison or allocate an MMR-selected pair
+      summary: Return an eligible active comparison or allocate an MMR-selected pair
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: The exact server-issued pair and its 24-hour submission window.
+          description: The exact currently eligible server-issued pair and its 24-hour submission window.
           content:
             application/json:
               schema:
@@ -407,7 +531,9 @@ paths:
     put:
       operationId: submitComparisonResult
       summary: Idempotently finalize the exact server-issued comparison
-      description: Game IDs, orientation, ratings, aggregation values, and model parameters are server-owned.
+      description: >-
+        Game IDs, orientation, ratings, aggregation values, and model parameters are server-owned. A comparison whose
+        game became ineligible is invalidated and rejected with 409 Conflict.
       security:
         - bearerAuth: []
       parameters:
@@ -752,6 +878,87 @@ components:
           maxItems: 100
           items:
             $ref: '#/components/schemas/PersonalLeaderboardEntry'
+        nextCursor:
+          type: [string, 'null']
+    FriendLeaderboardSharing:
+      type: object
+      additionalProperties: false
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Reciprocal friend-leaderboard sharing; false for every new account.
+    ParticipatingFriendEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - friendId
+        - displayName
+        - avatarUrl
+        - profileUrl
+      properties:
+        friendId:
+          type: string
+          format: uuid
+          description: Server-issued opaque route identifier; it is not a SteamID64 or account identifier.
+        displayName:
+          type: string
+          description: Current stored Steam display name with original capitalization.
+        avatarUrl:
+          type: [string, 'null']
+          format: uri
+        profileUrl:
+          type: [string, 'null']
+          format: uri
+    ParticipatingFriendPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/ParticipatingFriendEntry'
+        nextCursor:
+          type: [string, 'null']
+    FriendLeaderboardEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - rank
+        - appId
+        - name
+        - artworkUrl
+      properties:
+        rank:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Contiguous rank recalculated after filtering to ranked games.
+        appId:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+        artworkUrl:
+          type: string
+          format: uri
+    FriendLeaderboardPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/FriendLeaderboardEntry'
         nextCursor:
           type: [string, 'null']
     GlobalLeaderboardEntry:
