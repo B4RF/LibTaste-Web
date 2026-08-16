@@ -3,7 +3,7 @@
 Status: Verified
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-13
+Last updated: 2026-08-16
 Supersedes: None  
 Superseded by: None
 
@@ -53,9 +53,13 @@ a publicly deployed static container using environment-specific, non-secret runt
   or Compare when no destination exists.
 - **FR-005:** Access tokens shall exist only in memory. A page load or expired access token shall trigger at most one
   concurrent cookie-based refresh request with credentials and the CSRF value from the readable `libtaste_csrf` cookie.
-- **FR-006:** When refresh succeeds, waiting protected requests shall continue with the new bearer token. When refresh
-  fails, authenticated state and user-specific caches shall be cleared, and the intended internal destination shall be
-  retained for a later login.
+  Every refresh request shall have a ten-second deadline and shall release the shared in-flight operation after success,
+  failure, or cancellation.
+- **FR-006:** When refresh succeeds, waiting protected requests shall continue with the new bearer token. When the API
+  confirms that the session is invalid, authenticated state and user-specific caches shall be cleared, the intended
+  internal destination shall be retained, and sign-in shall be offered. A timeout or other transient refresh failure
+  shall instead leave protected content hidden, end the checking state, and show a safe session-recovery explanation
+  with a control that retries the session check.
 - **FR-007:** Unauthenticated access to a protected route shall display a sign-in path and shall never render protected
   content or redirect to an unvalidated external destination.
 - **FR-008:** User-visible API failures shall use safe Problem Details fields, keep recoverable screen state intact, offer
@@ -66,8 +70,10 @@ a publicly deployed static container using environment-specific, non-secret runt
 - **FR-010:** OpenAPI TypeScript types shall be generated from `openapi/openapi.yaml`; verification shall fail when the
   committed generated representation is stale.
 - **FR-011:** The production image shall serve the static SPA with route fallback, compression, security headers, runtime
-  configuration, and a container health endpoint. Local development shall proxy API traffic to a configurable origin
-  defaulting to `http://localhost:8080` without depending on the sibling API checkout.
+  configuration, and a container health endpoint. The HTML application shell shall require browser revalidation, runtime
+  configuration shall remain non-cacheable, and fingerprinted assets shall remain immutable. Local development shall
+  proxy API traffic to a configurable origin defaulting to `http://localhost:8080` without depending on the sibling API
+  checkout.
 - **FR-012:** Missing artwork or profile images shall render a neutral fallback without preventing navigation or exposing
   broken-image text as the accessible name.
 - **FR-013:** Navigation disclosures shall be operable by pointer, touch, and keyboard, shall expose their expanded
@@ -138,7 +144,7 @@ details when a request ID exists
 
 ### AC-006: Expired session recovery
 
-**Given** one or more protected requests encounter an expired session and refresh cannot succeed  
+**Given** one or more protected requests encounter an expired session and the refresh endpoint confirms it is invalid
 **When** session recovery completes  
 **Then** only one refresh attempt was made, protected data is cleared, and the user is offered sign-in with the intended
 internal destination preserved
@@ -153,7 +159,8 @@ internal destination preserved
 
 **Given** the production container is running  
 **When** a client requests a known SPA route directly or the health endpoint  
-**Then** the route receives the application shell and the health endpoint reports the static server as healthy
+**Then** the route receives an application shell that browsers must revalidate, runtime configuration remains
+non-cacheable, fingerprinted assets remain immutable, and the health endpoint reports the static server as healthy
 
 ### AC-009: Contract drift verification
 
@@ -176,6 +183,13 @@ and Recommendations
 **When** its initial content is ready
 **Then** its heading and the beginning of its primary task content are visible without vertical scrolling while body
 copy and interactive controls retain the established accessible sizing
+
+### AC-012: Recover from a stalled session check
+
+**Given** a protected route is restoring a cookie-backed session and the refresh response does not complete
+**When** the ten-second refresh deadline expires
+**Then** the request is cancelled, protected content remains hidden, the checking screen is replaced by a safe
+session-recovery explanation, and retry starts one new bounded session check without losing the intended destination
 
 ## Interfaces and data
 
@@ -203,6 +217,8 @@ route or allow credentialed API requests consistently with the API's origin and 
 
 - Assumption for approval: Library remains a first-class protected route and recovery destination; only its routine
   navigation placement and explicit second position in the authenticated profile disclosure change.
+- Assumption for this revision's approval: ten seconds is the session-refresh deadline; transient failures provide an
+  explicit retry instead of treating the cookie-backed session as confirmed invalid.
 
 ## Implementation notes
 
@@ -226,15 +242,16 @@ route or allow credentialed API requests consistently with the API's origin and 
 | AC-005 | Integration test | `apps/web/src/api/client.test.ts` | Passed 2026-08-10 |
 | AC-006 | Integration test | `apps/web/src/api/client.test.ts`, `apps/web/src/app/App.test.tsx` | Passed 2026-08-10 |
 | AC-007 | Browser test | `apps/web/src/bootstrap.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-10 |
-| AC-008 | Container verification | `apps/web/scripts/verify-container.mjs` | Passed 2026-08-10 |
+| AC-008 | Container verification | `apps/web/scripts/verify-container.mjs` | Passed 2026-08-16 |
 | AC-009 | Script verification | `apps/web/scripts/check-openapi.mjs` | Passed 2026-08-10 |
 | AC-010 | Component/browser navigation tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/library.spec.ts` — Steam profile, Library, and Account & Security render in the required order while Library remains outside primary navigation | Passed 2026-08-13 |
 | AC-011 | Browser layout test | `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
+| AC-012 | Integration/component test | `apps/web/src/api/client.test.ts`, `apps/web/src/app/App.test.tsx` | Passed 2026-08-16 |
 | NFR-002 | Automated accessibility and viewport tests | `apps/web/src/app/App.test.tsx`, `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
 | NFR-003 | Browser project configuration | `apps/web/playwright.config.ts`, `apps/web/package.json#browserslist` | Passed 2026-08-10 |
-| NFR-004 | Automated header and logging review | `apps/web/scripts/verify-container.mjs`, `apps/web/src/api/client.test.ts` | Passed 2026-08-10 |
+| NFR-004 | Automated header and logging review | `apps/web/scripts/verify-container.mjs`, `apps/web/src/api/client.test.ts` | Passed 2026-08-16 |
 | NFR-006 | Build verification | `apps/web/package.json`, `package-lock.json`, `apps/web/README.md` | Passed 2026-08-10 |
-| NFR-007 | Coverage report | `apps/web/vitest.config.ts` (92.71% statements, 89.36% branches, 92.53% functions, 94.78% lines) | Passed 2026-08-10 |
+| NFR-007 | Coverage report | `apps/web/vitest.config.ts` (90.66% statements, 84.82% branches, 91.92% functions, 92.86% lines) | Passed 2026-08-16 |
 | NFR-008 | CI configuration inspection | `.github/workflows/verify.yml` | Passed 2026-08-10 |
 | NFR-009 | Browser layout and computed-style test | `apps/web/e2e/foundation.spec.ts` | Passed 2026-08-12 |
 
@@ -254,6 +271,11 @@ route or allow credentialed API requests consistently with the API's origin and 
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 93 tests, coverage gates, OpenAPI drift check, and production build | 2026-08-13 |
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 100 tests, coverage (90.43% statements, 84.52% branches, 92.17% functions, 92.59% lines), OpenAPI drift check, and production build | 2026-08-13 |
 | Full Playwright matrix | Passed: 105 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-13 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 114 tests, coverage (90.66% statements, 84.82% branches, 91.92% functions, 92.86% lines), OpenAPI drift check, and production build | 2026-08-16 |
+| `npx.cmd playwright test --workers=1` | Passed: 120 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-16 |
+| `docker build --file apps/web/Dockerfile --tag libtaste-web:spec-0001 .` | Passed | 2026-08-16 |
+| `$env:LIBTASTE_CONTAINER_URL='http://127.0.0.1:8088'; node apps/web/scripts/verify-container.mjs` | Passed: health, SPA fallback, cache policy, runtime configuration, compression, and security headers | 2026-08-16 |
+| `node scripts/validate-specs.mjs` | Passed after revised evidence and lifecycle update | 2026-08-16 |
 | `node scripts/validate-specs.mjs` | Passed after verification evidence and lifecycle update | 2026-08-13 |
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 101 tests, coverage (90.43% statements, 84.52% branches, 92.17% functions, 92.59% lines), OpenAPI drift check, and production build | 2026-08-13 |
 | Full Playwright matrix | Passed: 105 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-13 |

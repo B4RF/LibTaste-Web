@@ -8,6 +8,8 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ### Changed
 
+- Bounded cookie-backed session checks to ten seconds, added safe retry recovery for transient failures, and made the
+  production HTML shell revalidate while retaining non-cacheable runtime config and immutable fingerprinted assets.
 - Friend leaderboard recovery now explains how to make a Steam friends list public and links to official Steam privacy
   guidance.
 - Personal rankings now include ranked historical games automatically and no longer send or display the removed

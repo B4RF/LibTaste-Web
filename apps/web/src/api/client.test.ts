@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RuntimeConfig } from "../config";
 import { SessionManager } from "./client";
 import { ApiProblem } from "./problem";
@@ -24,6 +24,10 @@ function token(value = "access-1") {
 
 beforeEach(() => {
   document.cookie = "libtaste_csrf=csrf-value; path=/";
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("SessionManager", () => {
@@ -57,6 +61,39 @@ describe("SessionManager", () => {
         client_id: "browser-client",
       }),
     );
+  });
+
+  it("cancels a stalled shared refresh after ten seconds and permits one bounded retry", async () => {
+    vi.useFakeTimers();
+    const onSessionEvent = vi.fn();
+    const fetcher = vi.fn<typeof fetch>((_input, init) => {
+      const signal = init?.signal;
+      return new Promise<Response>((resolve, reject) => {
+        signal?.addEventListener("abort", () => reject(signal.reason), {
+          once: true,
+        });
+        if (fetcher.mock.calls.length === 2) resolve(token("retried"));
+      });
+    });
+    const session = new SessionManager(config, { fetcher, onSessionEvent });
+    const stalled = Promise.all([session.refresh(), session.refresh()]);
+    const rejection = expect(stalled).rejects.toMatchObject({
+      name: "TimeoutError",
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const firstSignal = fetcher.mock.calls[0]![1]?.signal;
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(firstSignal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await rejection;
+    expect(firstSignal?.aborted).toBe(true);
+    expect(onSessionEvent).toHaveBeenCalledWith("recovery-required");
+    expect(onSessionEvent).not.toHaveBeenCalledWith("signed-out");
+
+    await expect(session.refresh()).resolves.toBe("retried");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls[1]![1]?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("exchanges a code without persisting or sending a client secret", async () => {

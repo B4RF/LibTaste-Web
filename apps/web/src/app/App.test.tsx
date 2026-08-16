@@ -139,6 +139,81 @@ describe("application routes", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("hides protected content after a transient session failure and retries on the same route", async () => {
+    document.cookie = "libtaste_csrf=test; path=/";
+    let refreshCount = 0;
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/auth/token")) {
+        refreshCount += 1;
+        if (refreshCount === 1) {
+          return new Response(
+            JSON.stringify({
+              title: "Upstream unavailable",
+              status: 503,
+              detail: "Internal infrastructure detail",
+            }),
+            {
+              status: 503,
+              headers: { "Content-Type": "application/problem+json" },
+            },
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            access_token: "retried-access",
+            token_type: "Bearer",
+            expires_in: 900,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (url.endsWith("/comparisons/next")) {
+        return new Response(
+          JSON.stringify({
+            comparisonId: "11111111-1111-4111-8111-111111111111",
+            left: { appId: 400, name: "Portal" },
+            right: { appId: 620, name: "Portal 2" },
+            createdAt: "2026-08-10T08:00:00Z",
+            expiresAt: "2026-08-11T08:00:00Z",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          steamId64: "76561198000000000",
+          displayName: "Test Pilot",
+          libraryState: "AVAILABLE",
+          synchronization: null,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+    renderRoute(
+      "/compare?from=library",
+      new SessionManager(config, { fetcher }),
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "We could not check your session",
+      }),
+    ).toBeVisible();
+    expect(screen.queryByText("Compare games")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Internal infrastructure detail"),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Retry session check" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Compare games" }),
+    ).toBeVisible();
+    expect(refreshCount).toBe(2);
+  });
+
   it("renders authenticated protected content after session restoration", async () => {
     document.cookie = "libtaste_csrf=test; path=/";
     const fetcher = vi.fn<typeof fetch>(async (input) => {
