@@ -24,6 +24,25 @@ export function ProtectedRoute({
   if (status === "unknown" || status === "checking") {
     return <p role="status">{copy.protected.checking}</p>;
   }
+  if (status === "recovery-required") {
+    return (
+      <section
+        className={styles.centeredPanel}
+        aria-labelledby="session-recovery-title"
+      >
+        <p className={styles.eyebrow}>{copy.protected.recoveryEyebrow}</p>
+        <h1 id="session-recovery-title">{copy.protected.recoveryTitle}</h1>
+        <p>{copy.protected.recoverySummary}</p>
+        <button
+          className={styles.primaryButton}
+          type="button"
+          onClick={() => void restore()}
+        >
+          {copy.protected.retry}
+        </button>
+      </section>
+    );
+  }
   if (status === "signed-out") {
     return (
       <section

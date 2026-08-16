@@ -12,7 +12,7 @@ import { SessionManager, type SessionEvent } from "../api/client";
 import { clearAuthTransaction } from "./pkce";
 
 export type AuthStatus =
-  "unknown" | "checking" | "authenticated" | "signed-out";
+  "unknown" | "checking" | "authenticated" | "signed-out" | "recovery-required";
 
 interface AuthValue {
   status: AuthStatus;
@@ -44,7 +44,7 @@ export function AuthProvider({
   useEffect(
     () =>
       session.subscribe((event: SessionEvent) => {
-        setStatus(event === "authenticated" ? "authenticated" : "signed-out");
+        setStatus(event);
         if (event === "signed-out") {
           void clearProtectedState();
         }
@@ -58,6 +58,9 @@ export function AuthProvider({
       await session.refresh();
       return true;
     } catch {
+      setStatus((current) =>
+        current === "checking" ? "recovery-required" : current,
+      );
       return false;
     }
   }, [session]);

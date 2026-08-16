@@ -34,8 +34,10 @@ derived as the current browser origin plus `/auth/callback`; it is never accepte
 - Steam sign-in uses a cryptographically random one-time PKCE verifier and S256 challenge.
 - Only allowlisted protected paths are retained as post-login destinations.
 - Access tokens exist only inside the in-memory `SessionManager`.
-- Cookie-backed rotation includes credentials and echoes the `libtaste_csrf` cookie in `X-CSRF-Token`.
-- Concurrent and delayed expired-token responses share one rotation operation.
+- Cookie-backed rotation includes credentials, echoes the `libtaste_csrf` cookie in `X-CSRF-Token`, and aborts after a
+  ten-second deadline.
+- Concurrent and delayed expired-token responses share one bounded rotation operation. Confirmed session loss clears
+  protected state, while transient failures hide protected content and offer an explicit session-check retry.
 - Session loss clears user-scoped TanStack Query caches while public cache entries can remain.
 - User-visible errors expose only safe Problem Details fields; request IDs stay inside expandable support details.
 
@@ -156,8 +158,9 @@ docker run --rm --publish 8080:8080 `
   libtaste-web
 ```
 
-The image writes non-secret runtime config at container startup and serves it without caching. Nginx provides SPA route
-fallback, gzip compression, a `/healthz` endpoint, immutable hashed assets, CSP, and browser security headers.
+The image writes non-secret runtime config at container startup and serves it without caching. Nginx makes browsers
+revalidate the HTML application shell, keeps hashed assets immutable, and provides SPA route fallback, gzip
+compression, a `/healthz` endpoint, CSP, and browser security headers.
 
 To probe a running container:
 

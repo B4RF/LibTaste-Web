@@ -36,6 +36,11 @@ export const copy = {
     title: "Sign in to continue",
     summary: "This area uses your Steam library and personal LibTaste ranking.",
     checking: "Checking your LibTaste session…",
+    recoveryEyebrow: "Session check interrupted",
+    recoveryTitle: "We could not check your session",
+    recoverySummary:
+      "LibTaste could not safely confirm your session. Protected content remains hidden. Check your connection and try again.",
+    retry: "Retry session check",
   },
   routes: {
     compare: "Compare games",

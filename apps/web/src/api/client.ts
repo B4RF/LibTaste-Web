@@ -5,8 +5,10 @@ import { ApiProblem, toApiProblem } from "./problem";
 type TokenResponse = components["schemas"]["TokenResponse"];
 type TokenRequest = components["schemas"]["TokenRequest"];
 
-export type SessionEvent = "authenticated" | "signed-out";
+export type SessionEvent = "authenticated" | "signed-out" | "recovery-required";
 export type SessionRecovery = "authenticated" | "signed-out" | "unknown";
+
+const REFRESH_TIMEOUT_MS = 10_000;
 
 export interface SessionManagerOptions {
   fetcher?: typeof fetch;
@@ -73,21 +75,37 @@ export class SessionManager {
       grant_type: "refresh_token",
       client_id: this.config.webClientId,
     };
-    const response = await this.fetcher(
-      `${this.config.apiBaseUrl}/auth/token`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRF-Token": decodeURIComponent(csrf),
-        },
-        body: JSON.stringify(body),
-      },
+    const controller = new AbortController();
+    const timeout = globalThis.setTimeout(
+      () =>
+        controller.abort(
+          new DOMException(
+            "The session refresh deadline expired.",
+            "TimeoutError",
+          ),
+        ),
+      REFRESH_TIMEOUT_MS,
     );
-    if (!response.ok) throw await toApiProblem(response);
-    return this.retainToken((await response.json()) as TokenResponse);
+    try {
+      const response = await this.fetcher(
+        `${this.config.apiBaseUrl}/auth/token`,
+        {
+          method: "POST",
+          credentials: "include",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-CSRF-Token": decodeURIComponent(csrf),
+          },
+          body: JSON.stringify(body),
+        },
+      );
+      if (!response.ok) throw await toApiProblem(response);
+      return this.retainToken((await response.json()) as TokenResponse);
+    } finally {
+      globalThis.clearTimeout(timeout);
+    }
   }
 
   clear(): void {
@@ -125,7 +143,8 @@ export class SessionManager {
 
     this.refreshPromise = this.requestRefreshToken()
       .catch((error: unknown) => {
-        this.clear();
+        if (error instanceof ApiProblem && error.status === 401) this.clear();
+        else this.emit("recovery-required");
         throw error;
       })
       .finally(() => {

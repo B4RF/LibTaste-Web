@@ -21,6 +21,9 @@ const applicationShell = await route.text();
 if (!route.ok || !applicationShell.includes('<div id="root"></div>')) {
   throw new Error("Direct SPA route did not receive the application shell.");
 }
+if (route.headers.get("cache-control") !== "no-cache") {
+  throw new Error("The HTML application shell does not require revalidation.");
+}
 if (!config.ok || config.headers.get("cache-control") !== "no-store") {
   throw new Error("Runtime configuration is missing or cacheable.");
 }
@@ -62,7 +65,13 @@ const compressedAsset = await fetch(`${baseUrl}${scriptPath}`, {
 if (compressedAsset.headers.get("content-encoding") !== "gzip") {
   throw new Error("Static JavaScript was not served with compression.");
 }
+if (
+  compressedAsset.headers.get("cache-control") !==
+  "public, max-age=31536000, immutable"
+) {
+  throw new Error("Fingerprinted assets are not served as immutable.");
+}
 
 console.log(
-  "Container health, SPA fallback, runtime configuration, compression, and security headers passed.",
+  "Container health, SPA fallback, cache policy, runtime configuration, compression, and security headers passed.",
 );
