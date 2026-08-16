@@ -150,7 +150,7 @@ describe("game leaderboards", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it("replaces personal pages for history and retries the same failed cursor without losing rows", async () => {
+  it("includes ranked history automatically and retries the same failed cursor without losing rows", async () => {
     document.cookie = "libtaste_csrf=test; path=/";
     const requestUrls: string[] = [];
     let nextAttempts = 0;
@@ -174,10 +174,6 @@ describe("game leaderboards", () => {
     };
     const fetcher = authenticatedFetcher((url) => {
       requestUrls.push(url.toString());
-      if (url.searchParams.get("includeHistorical") === "true") {
-        expect(url.searchParams.has("cursor")).toBe(false);
-        return json({ items: [historicalHalfLife], nextCursor: null });
-      }
       if (url.searchParams.get("cursor") === "personal+/=") {
         nextAttempts += 1;
         if (nextAttempts === 1) {
@@ -197,8 +193,11 @@ describe("game leaderboards", () => {
           nextCursor: null,
         });
       }
-      expect(url.searchParams.get("includeHistorical")).toBe("false");
-      return json({ items: [personalPortal], nextCursor: "personal+/=" });
+      expect(url.searchParams.has("includeHistorical")).toBe(false);
+      return json({
+        items: [personalPortal, historicalHalfLife],
+        nextCursor: "personal+/=",
+      });
     });
     const { container } = renderRoute("/leaderboard/me", fetcher);
 
@@ -218,6 +217,15 @@ describe("game leaderboards", () => {
     expect(within(portalRow).getByText("2 comparisons")).toBeVisible();
     expect(within(portalRow).getByText("Currently owned")).toBeVisible();
     expect(within(portalRow).getByText("Eligible")).toBeVisible();
+    const historicalRow = screen
+      .getByRole("rowheader", { name: "Half-Life" })
+      .closest("tr")!;
+    expect(
+      within(historicalRow).getByText("Historical ownership"),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("checkbox", { name: "Include historical games" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText(/personal score reflects your ranking/i),
     ).toBeVisible();
@@ -243,16 +251,9 @@ describe("game leaderboards", () => {
     );
     expect(nextAttempts).toBe(2);
 
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: "Include historical games" }),
+    expect(requestUrls.every((url) => !url.includes("includeHistorical"))).toBe(
+      true,
     );
-    expect(
-      await screen.findByRole("rowheader", { name: "Half-Life" }),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole("rowheader", { name: "Portal" }),
-    ).not.toBeInTheDocument();
-    expect(requestUrls.at(-1)).toContain("includeHistorical=true");
     expect(await axe(container)).toHaveNoViolations();
   });
 

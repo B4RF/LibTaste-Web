@@ -1,5 +1,6 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useRef, useState, type ReactNode } from "react";
+import { Link, useParams } from "react-router-dom";
 import { ApiProblem } from "../../api/problem";
 import { useAuth } from "../../auth/AuthContext";
 import { Artwork } from "../../components/Artwork";
@@ -8,15 +9,21 @@ import { copy } from "../../content/copy";
 import styles from "../../styles/App.module.css";
 import {
   getGlobalLeaderboardPage,
+  getFriendLeaderboardPage,
+  getFriendLeaderboardSharing,
+  getParticipatingFriendsPage,
   getPersonalLeaderboardPage,
+  friendGameLeaderboardQueryKey,
+  friendLeaderboardSharingQueryKey,
+  participatingFriendsQueryKey,
   personalLeaderboardQueryKey,
+  type FriendLeaderboardEntry,
   type GlobalLeaderboardEntry,
+  type ParticipatingFriendEntry,
   type PersonalLeaderboardEntry,
 } from "./leaderboardApi";
 
 const globalQueryKey = ["leaderboard", "global"] as const;
-const personalQueryKey = (includeHistorical: boolean) =>
-  [...personalLeaderboardQueryKey, includeHistorical] as const;
 const scoreFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 });
@@ -40,6 +47,19 @@ function uniqueEntries<T extends { appId: number; rank: number }>(
     }
   }
   return entries;
+}
+
+function uniqueFriends(
+  pages: { items: ParticipatingFriendEntry[] }[] | undefined,
+): ParticipatingFriendEntry[] {
+  const friendIds = new Set<string>();
+  return (pages ?? []).flatMap((page) =>
+    page.items.filter((friend) => {
+      if (friendIds.has(friend.friendId)) return false;
+      friendIds.add(friend.friendId);
+      return true;
+    }),
+  );
 }
 
 function useLoadMore(
@@ -83,8 +103,8 @@ function PageHeader({
   title: string;
   eyebrow: string;
   summary: string;
-  scoreSummary: string;
-  scoreHelp: string;
+  scoreSummary?: string;
+  scoreHelp?: string;
   action?: ReactNode;
 }) {
   return (
@@ -93,12 +113,16 @@ function PageHeader({
         <p className={styles.eyebrow}>{eyebrow}</p>
         <h1>{title}</h1>
         <p>{summary}</p>
-        <p className={styles.leaderboardHelp}>{scoreSummary}</p>
-        <details className={styles.infoDisclosure}>
-          <summary>{copy.leaderboards.scoringInfo}</summary>
-          <p className={styles.leaderboardHelp}>{scoreHelp}</p>
-          <StatusHelp />
-        </details>
+        {scoreSummary ? (
+          <p className={styles.leaderboardHelp}>{scoreSummary}</p>
+        ) : null}
+        {scoreHelp ? (
+          <details className={styles.infoDisclosure}>
+            <summary>{copy.leaderboards.scoringInfo}</summary>
+            <p className={styles.leaderboardHelp}>{scoreHelp}</p>
+            <StatusHelp />
+          </details>
+        ) : null}
       </div>
       {action}
     </header>
@@ -201,6 +225,180 @@ function PersonalTable({ entries }: { entries: PersonalLeaderboardEntry[] }) {
   );
 }
 
+function ParticipatingFriendsTable({
+  entries,
+}: {
+  entries: ParticipatingFriendEntry[];
+}) {
+  return (
+    <div
+      className={styles.leaderboardTableRegion}
+      role="region"
+      aria-label={copy.leaderboards.friends.tableLabel}
+      tabIndex={0}
+    >
+      <table className={`${styles.leaderboardTable} ${styles.friendTable}`}>
+        <thead>
+          <tr>
+            <th scope="col">{copy.leaderboards.columns.avatar}</th>
+            <th scope="col">{copy.leaderboards.columns.friend}</th>
+            <th scope="col">{copy.leaderboards.columns.actions}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((friend) => (
+            <tr key={friend.friendId}>
+              <td className={styles.friendAvatar}>
+                <Artwork
+                  kind="avatar"
+                  src={friend.avatarUrl}
+                  name={friend.displayName}
+                />
+              </td>
+              <th scope="row">{friend.displayName}</th>
+              <td>
+                <div className={styles.friendActions}>
+                  {friend.profileUrl ? (
+                    <a
+                      href={friend.profileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={copy.leaderboards.friends.profileLabel(
+                        friend.displayName,
+                      )}
+                    >
+                      {copy.leaderboards.friends.profile} ↗
+                    </a>
+                  ) : null}
+                  <Link
+                    to={`/leaderboard/friends/${friend.friendId}`}
+                    aria-label={copy.leaderboards.friends.rankingLabel(
+                      friend.displayName,
+                    )}
+                  >
+                    {copy.leaderboards.friends.ranking}
+                  </Link>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FriendLeaderboardTable({
+  entries,
+}: {
+  entries: FriendLeaderboardEntry[];
+}) {
+  return (
+    <div
+      className={styles.leaderboardTableRegion}
+      role="region"
+      aria-label={copy.leaderboards.friendRanking.tableLabel}
+      tabIndex={0}
+    >
+      <table
+        className={`${styles.leaderboardTable} ${styles.friendRankingTable}`}
+      >
+        <thead>
+          <tr>
+            <th scope="col">{copy.leaderboards.columns.rank}</th>
+            <th scope="col">{copy.leaderboards.columns.artwork}</th>
+            <th scope="col">{copy.leaderboards.columns.game}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => (
+            <tr key={entry.appId}>
+              <td>{entry.rank}</td>
+              <td className={styles.leaderboardArtwork}>
+                <Artwork src={entry.artworkUrl} name={entry.name} />
+              </td>
+              <th scope="row">{entry.name}</th>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function problemType(error: unknown): string | undefined {
+  return error instanceof ApiProblem
+    ? error.type?.split("/").at(-1)
+    : undefined;
+}
+
+function FriendProblemNotice({
+  error,
+  onRetry,
+  retryLabel,
+  target = false,
+}: {
+  error: unknown;
+  onRetry: () => void;
+  retryLabel?: string;
+  target?: boolean;
+}) {
+  const kind = problemType(error);
+  if (
+    target &&
+    (kind === "friend-not-found" ||
+      (error instanceof ApiProblem && error.status === 404))
+  ) {
+    const safeError = new ApiProblem(
+      404,
+      copy.leaderboards.errors.notFoundTitle,
+      copy.leaderboards.errors.notFoundDetail,
+      error instanceof ApiProblem ? error.requestId : undefined,
+      kind,
+    );
+    return (
+      <div>
+        <ProblemNotice error={safeError} />
+        <Link className={styles.secondaryButton} to="/leaderboard/friends">
+          {copy.leaderboards.friendRanking.back}
+        </Link>
+      </div>
+    );
+  }
+
+  const guidance =
+    kind === "friend-leaderboard-sharing-required"
+      ? copy.leaderboards.errors.sharingRequired
+      : kind === "steam-friend-list-private"
+        ? copy.leaderboards.errors.privateList
+        : kind === "steam-friends-unavailable"
+          ? copy.leaderboards.errors.unavailable
+          : error instanceof ApiProblem && error.status === 429
+            ? copy.leaderboards.errors.rateLimited
+            : undefined;
+  return (
+    <div>
+      {guidance ? <p className={styles.inlineError}>{guidance}</p> : null}
+      {kind === "steam-friend-list-private" ? (
+        <a
+          className={styles.secondaryButton}
+          href="https://help.steampowered.com/en/faqs/view/588C-C67D-0251-C276"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {copy.leaderboards.errors.privacyGuidance}
+        </a>
+      ) : null}
+      <ProblemNotice error={error} onRetry={onRetry} retryLabel={retryLabel} />
+      {kind === "friend-leaderboard-sharing-required" ? (
+        <Link className={styles.secondaryButton} to="/settings">
+          {copy.leaderboards.friends.openSettings}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 function QueryState({
   entries,
   isPending,
@@ -216,9 +414,10 @@ function QueryState({
   end,
   onRetry,
   onLoadMore,
+  renderProblem,
   children,
 }: {
-  entries: { appId: number }[];
+  entries: readonly unknown[];
   isPending: boolean;
   isError: boolean;
   error: unknown;
@@ -232,6 +431,7 @@ function QueryState({
   end: string;
   onRetry: () => void;
   onLoadMore: () => void;
+  renderProblem?: (onRetry: () => void, retryLabel?: string) => ReactNode;
   children: ReactNode;
 }) {
   if (isPending) return <p role="status">{loading}</p>;
@@ -241,7 +441,11 @@ function QueryState({
         {error instanceof ApiProblem && error.status === 429 ? (
           <p>{copy.leaderboards.rateLimited}</p>
         ) : null}
-        <ProblemNotice error={error} onRetry={onRetry} />
+        {renderProblem ? (
+          renderProblem(onRetry)
+        ) : (
+          <ProblemNotice error={error} onRetry={onRetry} />
+        )}
       </div>
     );
   }
@@ -254,11 +458,15 @@ function QueryState({
           {error instanceof ApiProblem && error.status === 429 ? (
             <p>{copy.leaderboards.rateLimited}</p>
           ) : null}
-          <ProblemNotice
-            error={error}
-            onRetry={onLoadMore}
-            retryLabel={copy.leaderboards.retryMore}
-          />
+          {renderProblem ? (
+            renderProblem(onLoadMore, copy.leaderboards.retryMore)
+          ) : (
+            <ProblemNotice
+              error={error}
+              onRetry={onLoadMore}
+              retryLabel={copy.leaderboards.retryMore}
+            />
+          )}
         </div>
       ) : null}
       {hasNextPage && !isFetchNextPageError ? (
@@ -326,13 +534,11 @@ export function GlobalLeaderboardPage() {
 
 export function PersonalLeaderboardPage() {
   const { session } = useAuth();
-  const queryClient = useQueryClient();
-  const [includeHistorical, setIncludeHistorical] = useState(false);
   const query = useInfiniteQuery({
-    queryKey: personalQueryKey(includeHistorical),
+    queryKey: personalLeaderboardQueryKey,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
-      getPersonalLeaderboardPage(session, includeHistorical, pageParam, signal),
+      getPersonalLeaderboardPage(session, pageParam, signal),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     meta: { scope: "user" },
   });
@@ -341,14 +547,6 @@ export function PersonalLeaderboardPage() {
     Boolean(query.hasNextPage),
     () => query.fetchNextPage(),
   );
-  const changeHistory = (nextValue: boolean) => {
-    queryClient.removeQueries({
-      queryKey: personalQueryKey(includeHistorical),
-      exact: true,
-    });
-    setIncludeHistorical(nextValue);
-  };
-
   return (
     <section className={styles.leaderboardPage}>
       <PageHeader
@@ -357,16 +555,6 @@ export function PersonalLeaderboardPage() {
         summary={copy.leaderboards.personal.summary}
         scoreSummary={copy.leaderboards.personal.scoreSummary}
         scoreHelp={copy.leaderboards.personal.scoreHelp}
-        action={
-          <label className={styles.historyToggle}>
-            <input
-              type="checkbox"
-              checked={includeHistorical}
-              onChange={(event) => changeHistory(event.currentTarget.checked)}
-            />
-            {copy.leaderboards.personal.includeHistorical}
-          </label>
-        }
       />
       <QueryState
         entries={entries}
@@ -386,6 +574,158 @@ export function PersonalLeaderboardPage() {
       >
         <PersonalTable entries={entries} />
       </QueryState>
+    </section>
+  );
+}
+
+export function FriendsLeaderboardPage() {
+  const { session } = useAuth();
+  const sharingQuery = useQuery({
+    queryKey: friendLeaderboardSharingQueryKey,
+    queryFn: ({ signal }) => getFriendLeaderboardSharing(session, signal),
+    meta: { scope: "user" },
+  });
+  const query = useInfiniteQuery({
+    queryKey: participatingFriendsQueryKey,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) =>
+      getParticipatingFriendsPage(session, pageParam, signal),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: sharingQuery.data?.enabled === true,
+    meta: { scope: "user" },
+  });
+  const entries = uniqueFriends(query.data?.pages);
+  const { loadMore, pageRequested } = useLoadMore(
+    Boolean(query.hasNextPage),
+    () => query.fetchNextPage(),
+  );
+
+  return (
+    <section className={styles.leaderboardPage}>
+      <PageHeader
+        title={copy.routes.friends}
+        eyebrow={copy.leaderboards.friends.eyebrow}
+        summary={copy.leaderboards.friends.summary}
+      />
+      {sharingQuery.isPending ? (
+        <p role="status">{copy.leaderboards.friends.checkingSharing}</p>
+      ) : sharingQuery.isError ? (
+        <ProblemNotice
+          error={sharingQuery.error}
+          onRetry={() => void sharingQuery.refetch()}
+        />
+      ) : !sharingQuery.data.enabled ? (
+        <div className={styles.settingsCard}>
+          <h2>{copy.leaderboards.friends.disabledTitle}</h2>
+          <p>{copy.leaderboards.friends.disabledDetail}</p>
+          <Link className={styles.secondaryButton} to="/settings">
+            {copy.leaderboards.friends.openSettings}
+          </Link>
+        </div>
+      ) : (
+        <QueryState
+          entries={entries}
+          isPending={query.isPending}
+          isError={query.isError}
+          error={query.error}
+          isFetchNextPageError={query.isFetchNextPageError}
+          isFetchingNextPage={query.isFetchingNextPage}
+          hasNextPage={Boolean(query.hasNextPage)}
+          pageRequested={pageRequested}
+          loading={copy.leaderboards.friends.loading}
+          loadingMore={copy.leaderboards.friends.loadingMore}
+          empty={copy.leaderboards.friends.empty}
+          end={copy.leaderboards.friends.end}
+          onRetry={() => void query.refetch()}
+          onLoadMore={() => void loadMore()}
+          renderProblem={(retry, retryLabel) => (
+            <FriendProblemNotice
+              error={query.error}
+              onRetry={retry}
+              retryLabel={retryLabel}
+            />
+          )}
+        >
+          <ParticipatingFriendsTable entries={entries} />
+        </QueryState>
+      )}
+    </section>
+  );
+}
+
+export function FriendLeaderboardPage() {
+  const { friendId = "" } = useParams();
+  const { session } = useAuth();
+  const sharingQuery = useQuery({
+    queryKey: friendLeaderboardSharingQueryKey,
+    queryFn: ({ signal }) => getFriendLeaderboardSharing(session, signal),
+    meta: { scope: "user" },
+  });
+  const query = useInfiniteQuery({
+    queryKey: friendGameLeaderboardQueryKey(friendId),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) =>
+      getFriendLeaderboardPage(session, friendId, pageParam, signal),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: Boolean(friendId) && sharingQuery.data?.enabled === true,
+    meta: { scope: "user" },
+  });
+  const entries = uniqueEntries(query.data?.pages);
+  const { loadMore, pageRequested } = useLoadMore(
+    Boolean(query.hasNextPage),
+    () => query.fetchNextPage(),
+  );
+
+  return (
+    <section className={styles.leaderboardPage}>
+      <PageHeader
+        title={copy.routes.friendRanking}
+        eyebrow={copy.leaderboards.friendRanking.eyebrow}
+        summary={copy.leaderboards.friendRanking.summary}
+      />
+      {sharingQuery.isPending ? (
+        <p role="status">{copy.leaderboards.friends.checkingSharing}</p>
+      ) : sharingQuery.isError ? (
+        <ProblemNotice
+          error={sharingQuery.error}
+          onRetry={() => void sharingQuery.refetch()}
+        />
+      ) : !sharingQuery.data.enabled ? (
+        <div className={styles.settingsCard}>
+          <h2>{copy.leaderboards.friends.disabledTitle}</h2>
+          <p>{copy.leaderboards.friends.disabledDetail}</p>
+          <Link className={styles.secondaryButton} to="/settings">
+            {copy.leaderboards.friends.openSettings}
+          </Link>
+        </div>
+      ) : (
+        <QueryState
+          entries={entries}
+          isPending={query.isPending}
+          isError={query.isError}
+          error={query.error}
+          isFetchNextPageError={query.isFetchNextPageError}
+          isFetchingNextPage={query.isFetchingNextPage}
+          hasNextPage={Boolean(query.hasNextPage)}
+          pageRequested={pageRequested}
+          loading={copy.leaderboards.friendRanking.loading}
+          loadingMore={copy.leaderboards.friendRanking.loadingMore}
+          empty={copy.leaderboards.friendRanking.empty}
+          end={copy.leaderboards.friendRanking.end}
+          onRetry={() => void query.refetch()}
+          onLoadMore={() => void loadMore()}
+          renderProblem={(retry, retryLabel) => (
+            <FriendProblemNotice
+              error={query.error}
+              onRetry={retry}
+              retryLabel={retryLabel}
+              target
+            />
+          )}
+        >
+          <FriendLeaderboardTable entries={entries} />
+        </QueryState>
+      )}
     </section>
   );
 }

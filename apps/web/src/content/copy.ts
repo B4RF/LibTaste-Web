@@ -14,6 +14,7 @@ export const copy = {
     compare: "Compare",
     recommendations: "Recommendations",
     personalRanking: "My ranking",
+    friends: "Friends",
     library: "Library",
     settings: "Account & Security",
     leaderboards: "Leaderboards",
@@ -40,6 +41,8 @@ export const copy = {
     compare: "Compare games",
     recommendations: "Recommendations",
     personalRanking: "My ranking",
+    friends: "Friends",
+    friendRanking: "Friend ranking",
     library: "Steam library",
     settings: "Account & Security",
     signedIn: "Signed in",
@@ -233,6 +236,9 @@ export const copy = {
       eligibility: "Eligibility",
       globalScore: "Global score",
       personalScore: "Personal score",
+      avatar: "Avatar",
+      friend: "Friend",
+      actions: "Actions",
     },
     status: {
       provisional: "Provisional",
@@ -260,13 +266,12 @@ export const copy = {
     personal: {
       eyebrow: "Your ordered library",
       summary:
-        "Browse your personal game order using current ownership by default.",
+        "Browse your current games and ranked historical games in the API's server-provided order.",
       scoreSummary:
         "Personal score reflects your ranking; it is not comparable with global score.",
       scoreHelp:
         "Personal score is the API's conservative rating (mu minus three sigma). Personal and global scores have different meanings and must not be directly compared.",
       tableLabel: "Personal game rankings",
-      includeHistorical: "Include historical games",
       loading: "Loading personal leaderboard…",
       loadingMore: "Loading more personal rankings…",
       empty: "No games are available in this personal leaderboard view.",
@@ -278,6 +283,50 @@ export const copy = {
       ineligible: "Not eligible",
       comparisons: (count: number) =>
         `${count} ${count === 1 ? "comparison" : "comparisons"}`,
+    },
+    friends: {
+      eyebrow: "Reciprocal Steam sharing",
+      summary:
+        "Discover current Steam friends who also enabled friend leaderboard sharing.",
+      checkingSharing: "Checking friend leaderboard sharing...",
+      disabledTitle: "Reciprocal sharing is disabled",
+      disabledDetail:
+        "Enable friend leaderboard sharing in Account & Security before discovering or viewing participating friends.",
+      openSettings: "Open Account & Security",
+      tableLabel: "Participating Steam friends",
+      profile: "Steam profile",
+      profileLabel: (name: string) => `Open ${name}'s Steam profile`,
+      ranking: "View ranking",
+      rankingLabel: (name: string) => `View ${name}'s ranking`,
+      loading: "Loading participating friends...",
+      loadingMore: "Loading more participating friends...",
+      empty: "No participating friends are available right now.",
+      end: "End of participating friends",
+    },
+    friendRanking: {
+      eyebrow: "Shared game order",
+      summary:
+        "This private, scoreless view contains only games that reached ranked status.",
+      tableLabel: "Friend game ranking",
+      loading: "Loading friend ranking...",
+      loadingMore: "Loading more friend rankings...",
+      empty: "This friend has no ranked games to share yet.",
+      end: "End of friend ranking",
+      back: "Back to Friends",
+    },
+    errors: {
+      sharingRequired:
+        "Reciprocal sharing is required before friend leaderboards are available.",
+      privateList:
+        "Your Steam friend list is private. In Steam, open your Profile, choose Edit Profile, open Privacy Settings, set Friends List to Public, then try again.",
+      privacyGuidance: "Open Steam privacy guidance",
+      unavailable:
+        "Steam friends are temporarily unavailable. Try again when Steam can refresh the relationship.",
+      rateLimited:
+        "Friend requests are temporarily rate limited. Wait for the API cooldown before trying again.",
+      notFoundTitle: "Friend ranking unavailable",
+      notFoundDetail:
+        "This ranking is not available. Return to Friends to choose a currently participating friend.",
     },
   },
   library: {
@@ -349,8 +398,22 @@ export const copy = {
   settings: {
     eyebrow: "Account and session controls",
     summary:
-      "Control this browser session, revoke every LibTaste session, or permanently delete your LibTaste account.",
+      "Control reciprocal friend sharing, browser sessions, and permanent LibTaste account deletion.",
     cancel: "Cancel",
+    sharing: {
+      title: "Friend leaderboard sharing",
+      detail:
+        "Sharing is disabled by default and reciprocal. Participating current Steam friends can see only your ranked game order, names, and artwork; never scores, evidence, ownership, or eligibility.",
+      privacy:
+        "Steam friends are fetched only when you open friend features. Successful relationship data is cached by the API for no more than 15 minutes. Disabling revokes access immediately, and account deletion removes sharing relationship data.",
+      enabled: "Sharing is enabled.",
+      disabled: "Sharing is disabled.",
+      enable: "Enable sharing",
+      disable: "Disable sharing",
+      enabling: "Enabling sharing...",
+      disabling: "Disabling sharing...",
+      loading: "Loading sharing setting...",
+    },
     current: {
       title: "This device",
       detail:

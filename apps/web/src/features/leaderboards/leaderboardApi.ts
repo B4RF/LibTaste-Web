@@ -9,8 +9,31 @@ export type PersonalLeaderboardEntry =
   components["schemas"]["PersonalLeaderboardEntry"];
 export type PersonalLeaderboardPageData =
   components["schemas"]["PersonalLeaderboardPage"];
+export type FriendLeaderboardSharing =
+  components["schemas"]["FriendLeaderboardSharing"];
+export type ParticipatingFriendEntry =
+  components["schemas"]["ParticipatingFriendEntry"];
+export type ParticipatingFriendPageData =
+  components["schemas"]["ParticipatingFriendPage"];
+export type FriendLeaderboardEntry =
+  components["schemas"]["FriendLeaderboardEntry"];
+export type FriendLeaderboardPageData =
+  components["schemas"]["FriendLeaderboardPage"];
 
 export const personalLeaderboardQueryKey = ["leaderboard", "personal"] as const;
+export const friendLeaderboardSharingQueryKey = [
+  "friend-leaderboard-sharing",
+] as const;
+export const friendLeaderboardDataQueryKey = [
+  "leaderboard",
+  "friends",
+] as const;
+export const participatingFriendsQueryKey = [
+  ...friendLeaderboardDataQueryKey,
+  "list",
+] as const;
+export const friendGameLeaderboardQueryKey = (friendId: string) =>
+  [...friendLeaderboardDataQueryKey, "ranking", friendId] as const;
 
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -35,15 +58,56 @@ export async function getGlobalLeaderboardPage(
 
 export async function getPersonalLeaderboardPage(
   session: SessionManager,
-  includeHistorical: boolean,
   cursor?: string,
   signal?: AbortSignal,
 ): Promise<PersonalLeaderboardPageData> {
-  const query = new URLSearchParams({
-    includeHistorical: String(includeHistorical),
-  });
-  if (cursor) query.set("cursor", cursor);
   return readJson<PersonalLeaderboardPageData>(
-    await session.request(`/me/leaderboard?${query}`, { signal }),
+    await session.request(`/me/leaderboard${cursorQuery(cursor)}`, { signal }),
+  );
+}
+
+export async function getFriendLeaderboardSharing(
+  session: SessionManager,
+  signal?: AbortSignal,
+): Promise<FriendLeaderboardSharing> {
+  return readJson<FriendLeaderboardSharing>(
+    await session.request("/me/friend-leaderboard-sharing", { signal }),
+  );
+}
+
+export async function updateFriendLeaderboardSharing(
+  session: SessionManager,
+  enabled: boolean,
+): Promise<FriendLeaderboardSharing> {
+  return readJson<FriendLeaderboardSharing>(
+    await session.request("/me/friend-leaderboard-sharing", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    }),
+  );
+}
+
+export async function getParticipatingFriendsPage(
+  session: SessionManager,
+  cursor?: string,
+  signal?: AbortSignal,
+): Promise<ParticipatingFriendPageData> {
+  return readJson<ParticipatingFriendPageData>(
+    await session.request(`/me/friends${cursorQuery(cursor)}`, { signal }),
+  );
+}
+
+export async function getFriendLeaderboardPage(
+  session: SessionManager,
+  friendId: string,
+  cursor?: string,
+  signal?: AbortSignal,
+): Promise<FriendLeaderboardPageData> {
+  return readJson<FriendLeaderboardPageData>(
+    await session.request(
+      `/me/friends/${encodeURIComponent(friendId)}/leaderboard${cursorQuery(cursor)}`,
+      { signal },
+    ),
   );
 }

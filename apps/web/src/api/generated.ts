@@ -190,6 +190,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/friend-leaderboard-sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authenticated user's reciprocal friend-leaderboard sharing setting */
+        get: operations["getMyFriendLeaderboardSharing"];
+        /**
+         * Enable or disable the authenticated user's reciprocal friend-leaderboard sharing
+         * @description Disabling takes effect immediately for both inbound and outbound friend access.
+         */
+        put: operations["updateMyFriendLeaderboardSharing"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/friends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover current Steam friends who also enabled reciprocal leaderboard sharing
+         * @description Steam friendship is checked from the requester's public Steam list on demand and successful results are cached for no more than 15 minutes. Nonparticipants and unregistered Steam friends are indistinguishable. SteamID64 and internal account identifiers are never returned.
+         */
+        get: operations["getMyParticipatingSteamFriends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/friends/{friendId}/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one participating current Steam friend's minimal game ranking
+         * @description Requires reciprocal sharing and friendship proven from the authenticated requester's successful Steam lookup no older than 15 minutes. The response is intentionally scoreless and contains only ranked game order and presentation fields. Invalid, opted-out, deleted, and no-longer-proven targets share one generic not-found error.
+         */
+        get: operations["getFriendGameLeaderboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/recommendations": {
         parameters: {
             query?: never;
@@ -239,7 +300,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Return the active comparison or allocate an MMR-selected pair */
+        /** Return an eligible active comparison or allocate an MMR-selected pair */
         post: operations["getNextComparison"];
         delete?: never;
         options?: never;
@@ -257,7 +318,7 @@ export interface paths {
         get?: never;
         /**
          * Idempotently finalize the exact server-issued comparison
-         * @description Game IDs, orientation, ratings, aggregation values, and model parameters are server-owned.
+         * @description Game IDs, orientation, ratings, aggregation values, and model parameters are server-owned. A comparison whose game became ineligible is invalidated and rejected with 409 Conflict.
          */
         put: operations["submitComparisonResult"];
         post?: never;
@@ -405,6 +466,43 @@ export interface components {
         };
         PersonalLeaderboardPage: {
             items: components["schemas"]["PersonalLeaderboardEntry"][];
+            nextCursor?: string | null;
+        };
+        FriendLeaderboardSharing: {
+            /** @description Reciprocal friend-leaderboard sharing; false for every new account. */
+            enabled: boolean;
+        };
+        ParticipatingFriendEntry: {
+            /**
+             * Format: uuid
+             * @description Server-issued opaque route identifier; it is not a SteamID64 or account identifier.
+             */
+            friendId: string;
+            /** @description Current stored Steam display name with original capitalization. */
+            displayName: string;
+            /** Format: uri */
+            avatarUrl: string | null;
+            /** Format: uri */
+            profileUrl: string | null;
+        };
+        ParticipatingFriendPage: {
+            items: components["schemas"]["ParticipatingFriendEntry"][];
+            nextCursor?: string | null;
+        };
+        FriendLeaderboardEntry: {
+            /**
+             * Format: int64
+             * @description Contiguous rank recalculated after filtering to ranked games.
+             */
+            rank: number;
+            /** Format: int64 */
+            appId: number;
+            name: string;
+            /** Format: uri */
+            artworkUrl: string;
+        };
+        FriendLeaderboardPage: {
+            items: components["schemas"]["FriendLeaderboardEntry"][];
             nextCursor?: string | null;
         };
         GlobalLeaderboardEntry: {
@@ -672,15 +770,15 @@ export interface operations {
     getMySteamLibrary: {
         parameters: {
             query?: {
-                /** @description Opaque continuation cursor from the previous response; valid only with the originating filters. */
+                /** @description Trimmed, case-insensitive literal substring of the imported game name. */
+                name?: string;
+                /** @description Match the server-derived effective comparison eligibility. */
+                effectivelyEligible?: boolean;
+                /** @description Match the stored comparison-eligibility override. */
+                eligibilityOverride?: "DEFAULT" | "INCLUDED" | "EXCLUDED";
+                /** @description Opaque, expiring continuation cursor bound to the exact normalized filters. */
                 cursor?: string;
                 limit?: number;
-                /** @description Case-insensitive substring match over imported game names. */
-                name?: string;
-                /** @description Match the server-computed effective comparison eligibility. */
-                effectivelyEligible?: boolean;
-                /** @description Match the user's explicit comparison-eligibility override behavior. */
-                eligibilityOverride?: "DEFAULT" | "INCLUDED" | "EXCLUDED";
             };
             header?: never;
             path?: never;
@@ -688,7 +786,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Imported current and historical ownership entries in stable App-ID order. */
+            /** @description Imported entries matching every supplied filter in stable App-ID order. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -784,8 +882,6 @@ export interface operations {
     getMyGameLeaderboard: {
         parameters: {
             query?: {
-                /** @description Include imported games that are no longer owned. */
-                includeHistorical?: boolean;
                 /** @description Opaque, expiring continuation cursor from the previous response. */
                 cursor?: string;
                 limit?: number;
@@ -796,7 +892,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current personal games, and historical games only when explicitly requested. */
+            /** @description All current imported games plus no-longer-owned games that have reached ranked status. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -807,6 +903,117 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+        };
+    };
+    getMyFriendLeaderboardSharing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current setting, which is disabled by default. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FriendLeaderboardSharing"];
+                };
+            };
+            401: components["responses"]["Problem"];
+        };
+    };
+    updateMyFriendLeaderboardSharing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FriendLeaderboardSharing"];
+            };
+        };
+        responses: {
+            /** @description The persisted current setting. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FriendLeaderboardSharing"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getMyParticipatingSteamFriends: {
+        parameters: {
+            query?: {
+                /** @description Opaque, expiring, requester-bound continuation cursor. */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current registered Steam friends who have sharing enabled, including friends with an empty ranking. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipatingFriendPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            424: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
+        };
+    };
+    getFriendGameLeaderboard: {
+        parameters: {
+            query?: {
+                /** @description Opaque, expiring cursor bound to requester, friend target, and collection. */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Server-issued opaque friend identifier; never a SteamID64 or account ID. */
+                friendId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ranked current and historical games with contiguous ranks after privacy filtering. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FriendLeaderboardPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            424: components["responses"]["Problem"];
+            429: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
         };
     };
     getMyGameRecommendations: {
@@ -871,7 +1078,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The exact server-issued pair and its 24-hour submission window. */
+            /** @description The exact currently eligible server-issued pair and its 24-hour submission window. */
             200: {
                 headers: {
                     [name: string]: unknown;

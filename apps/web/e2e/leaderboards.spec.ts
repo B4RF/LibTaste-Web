@@ -111,7 +111,7 @@ test("public leaderboard keeps rows through cursor retry without session traffic
   ).toBe(true);
 });
 
-test("personal leaderboard reloads from the first page for historical games", async ({
+test("personal leaderboard includes ranked history without a legacy toggle", async ({
   page,
 }) => {
   await configureRuntime(page);
@@ -139,28 +139,23 @@ test("personal leaderboard reloads from the first page for historical games", as
     const url = new URL(route.request().url());
     leaderboardRequests.push(url.toString());
     expect(url.searchParams.has("cursor")).toBe(false);
-    if (url.searchParams.get("includeHistorical") === "true") {
-      await route.fulfill({
-        json: {
-          items: [
-            {
-              ...personalPortal,
-              rank: 8,
-              appId: 70,
-              name: "Half-Life",
-              score: 11.5,
-              currentlyOwned: false,
-              effectivelyEligible: false,
-            },
-          ],
-          nextCursor: null,
-        },
-      });
-      return;
-    }
-    expect(url.searchParams.get("includeHistorical")).toBe("false");
     await route.fulfill({
-      json: { items: [personalPortal], nextCursor: null },
+      json: {
+        items: [
+          personalPortal,
+          {
+            ...personalPortal,
+            rank: 8,
+            appId: 70,
+            name: "Half-Life",
+            score: 11.5,
+            status: "RANKED",
+            currentlyOwned: false,
+            effectivelyEligible: false,
+          },
+        ],
+        nextCursor: null,
+      },
     });
   });
 
@@ -173,13 +168,154 @@ test("personal leaderboard reloads from the first page for historical games", as
   const portalRow = page.getByRole("row", { name: /Portal/ });
   await expect(portalRow).toContainText("Not yet scored");
   await expect(portalRow).toContainText("2 comparisons");
-  await page
-    .getByRole("checkbox", { name: "Include historical games" })
-    .check();
   await expect(
     page.getByRole("rowheader", { name: "Half-Life" }),
   ).toBeVisible();
-  await expect(page.getByRole("rowheader", { name: "Portal" })).toHaveCount(0);
-  expect(leaderboardRequests).toHaveLength(2);
-  expect(leaderboardRequests[1]).toContain("includeHistorical=true");
+  await expect(page.getByRole("row", { name: /Half-Life/ })).toContainText(
+    "Historical ownership",
+  );
+  await expect(
+    page.getByRole("checkbox", { name: "Include historical games" }),
+  ).toHaveCount(0);
+  expect(leaderboardRequests).toHaveLength(1);
+  expect(leaderboardRequests[0]).not.toContain("includeHistorical");
+});
+
+test("participating friends lead to a private scoreless ranking", async ({
+  page,
+}) => {
+  await configureRuntime(page);
+  const friendId = "11111111-1111-4111-8111-111111111111";
+  await page.context().addCookies([
+    {
+      name: "libtaste_csrf",
+      value: "friends-e2e-csrf",
+      url: "http://127.0.0.1:4173",
+    },
+  ]);
+  await page.route("**/api/v1/auth/token", (route) =>
+    route.fulfill({
+      json: {
+        access_token: "friend-access",
+        token_type: "Bearer",
+        expires_in: 900,
+      },
+    }),
+  );
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        steamId64: "76561198000000000",
+        displayName: "Browser Pilot",
+        libraryState: "AVAILABLE",
+        synchronization: null,
+      },
+    }),
+  );
+  await page.route("**/api/v1/me/friend-leaderboard-sharing", (route) =>
+    route.fulfill({ json: { enabled: true } }),
+  );
+  await page.route("**/api/v1/me/friends", (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            friendId,
+            displayName: "ALIce",
+            avatarUrl: null,
+            profileUrl: "https://steamcommunity.com/id/alice",
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await page.route("**/api/v1/me/friends/*/leaderboard**", (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            rank: 1,
+            appId: 400,
+            name: "Portal",
+            artworkUrl: "https://cdn.example.test/portal.jpg",
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+
+  await page.goto("/leaderboard/friends");
+  await expect(page.getByText("ALIce")).toBeVisible();
+  await page.getByRole("link", { name: "View ALIce's ranking" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Friend ranking" }),
+  ).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "Portal" })).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: "Personal score" }),
+  ).toHaveCount(0);
+  await expect(page.getByText(friendId)).toHaveCount(0);
+});
+
+test("private Steam friend lists show public-visibility setup steps", async ({
+  page,
+}) => {
+  await configureRuntime(page);
+  await page.context().addCookies([
+    {
+      name: "libtaste_csrf",
+      value: "private-friends-e2e-csrf",
+      url: "http://127.0.0.1:4173",
+    },
+  ]);
+  await page.route("**/api/v1/auth/token", (route) =>
+    route.fulfill({
+      json: {
+        access_token: "private-friends-access",
+        token_type: "Bearer",
+        expires_in: 900,
+      },
+    }),
+  );
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        steamId64: "76561198000000000",
+        displayName: "Browser Pilot",
+        libraryState: "AVAILABLE",
+        synchronization: null,
+      },
+    }),
+  );
+  await page.route("**/api/v1/me/friend-leaderboard-sharing", (route) =>
+    route.fulfill({ json: { enabled: true } }),
+  );
+  await page.route("**/api/v1/me/friends", (route) =>
+    route.fulfill({
+      status: 424,
+      contentType: "application/problem+json",
+      json: {
+        type: "https://api.example.test/problems/steam-friend-list-private",
+        title: "Steam friend list is private",
+        detail: "Steam did not expose this requester's friend list.",
+        status: 424,
+      },
+    }),
+  );
+
+  await page.goto("/leaderboard/friends");
+  await expect(
+    page.getByText(
+      /Profile.*Edit Profile.*Privacy Settings.*Friends List.*Public/i,
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open Steam privacy guidance" }),
+  ).toHaveAttribute(
+    "href",
+    "https://help.steampowered.com/en/faqs/view/588C-C67D-0251-C276",
+  );
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
 });

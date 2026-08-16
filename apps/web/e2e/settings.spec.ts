@@ -6,7 +6,10 @@ const runtimeConfig = {
   environmentLabel: "E2E",
 };
 
-async function configureAuthenticatedSettings(page: Page) {
+async function configureAuthenticatedSettings(
+  page: Page,
+  sharing = { enabled: false, updates: 0 },
+) {
   let tokenRequests = 0;
   await page.route("**/config.json", (route) =>
     route.fulfill({ json: runtimeConfig }),
@@ -35,6 +38,13 @@ async function configureAuthenticatedSettings(page: Page) {
   await page.route("**/api/v1/me/library**", (route) =>
     route.fulfill({ json: { items: [], nextCursor: null } }),
   );
+  await page.route("**/api/v1/me/friend-leaderboard-sharing", async (route) => {
+    if (route.request().method() === "PUT") {
+      sharing.updates += 1;
+      sharing.enabled = Boolean(route.request().postDataJSON().enabled);
+    }
+    await route.fulfill({ json: { enabled: sharing.enabled } });
+  });
   await page.context().addCookies([
     {
       name: "libtaste_csrf",
@@ -50,6 +60,23 @@ async function configureAuthenticatedSettings(page: Page) {
     page.getByRole("heading", { name: "Account & Security" }),
   ).toBeVisible();
 }
+
+test("friend leaderboard sharing is explicit and server-confirmed", async ({
+  page,
+}) => {
+  const sharing = { enabled: false, updates: 0 };
+  await configureAuthenticatedSettings(page, sharing);
+
+  await expect(page.getByText("Sharing is disabled.")).toBeVisible();
+  await expect(
+    page.getByText(/cached by the API for no more than 15 minutes/i),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Enable sharing" }).click();
+  await expect(page.getByText("Sharing is enabled.")).toBeVisible();
+  await page.getByRole("button", { name: "Disable sharing" }).click();
+  await expect(page.getByText("Sharing is disabled.")).toBeVisible();
+  expect(sharing.updates).toBe(2);
+});
 
 test("current logout is one protected request and stale account page stays guarded", async ({
   page,
@@ -156,6 +183,9 @@ test("an uncertain deletion checks the session without repeating DELETE", async 
   });
   await page.route("**/api/v1/me/library**", (route) =>
     route.fulfill({ json: { items: [], nextCursor: null } }),
+  );
+  await page.route("**/api/v1/me/friend-leaderboard-sharing", (route) =>
+    route.fulfill({ json: { enabled: false } }),
   );
   await page.route("**/config.json", (route) =>
     route.fulfill({ json: runtimeConfig }),
