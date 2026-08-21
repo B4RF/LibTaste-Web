@@ -30,7 +30,7 @@ export interface paths {
         };
         /**
          * Verify the Steam OpenID callback
-         * @description Steam supplies its OpenID response fields in addition to the opaque state value.
+         * @description Steam supplies its OpenID response fields in addition to the opaque server state value.
          */
         get: operations["completeSteamAuthentication"];
         put?: never;
@@ -613,6 +613,8 @@ export interface operations {
                 return_uri: string;
                 code_challenge: string;
                 code_challenge_method: "S256";
+                /** @description Opaque PKCE transaction state supplied by Android and returned only after callback validation. */
+                state?: string;
             };
             header?: never;
             path?: never;
@@ -643,7 +645,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Redirect to the registered client return URI with a single-use authorization code. */
+            /** @description Redirect to the registered client return URI with a single-use authorization code and, for Android, the validated client state. */
             302: {
                 headers: {
                     Location?: string;

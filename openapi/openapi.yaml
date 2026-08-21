@@ -33,6 +33,13 @@ paths:
           schema:
             type: string
             const: S256
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{43}$'
+          description: Opaque PKCE transaction state supplied by Android and returned only after callback validation.
       responses:
         '302':
           description: Redirect to Steam without issuing API credentials.
@@ -49,7 +56,7 @@ paths:
     get:
       operationId: completeSteamAuthentication
       summary: Verify the Steam OpenID callback
-      description: Steam supplies its OpenID response fields in addition to the opaque state value.
+      description: Steam supplies its OpenID response fields in addition to the opaque server state value.
       parameters:
         - name: state
           in: query
@@ -58,7 +65,7 @@ paths:
             type: string
       responses:
         '302':
-          description: Redirect to the registered client return URI with a single-use authorization code.
+          description: Redirect to the registered client return URI with a single-use authorization code and, for Android, the validated client state.
           headers:
             Location:
               schema:
