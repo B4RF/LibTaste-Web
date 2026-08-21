@@ -29,6 +29,7 @@ beneath a dated or `Unreleased` heading. One line per change, written for a read
 
 ### Added
 
+- Added safe new-tab Steam store links to game names in global, personal, and friend leaderboards.
 - Added private-by-default reciprocal Steam-friend leaderboard sharing, participating-friend discovery, and protected
   scoreless friend rankings with opaque cursor pagination and immediate browser-cache revocation on opt-out.
 - Added one-click exclusion for either game on Compare, with server-confirmed eligibility, no-rating matchup

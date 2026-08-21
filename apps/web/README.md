@@ -96,7 +96,8 @@ games automatically, without a client-side history filter. Both leaderboards:
 - distinguish loading, empty, rate-limited, retry, and terminal states;
 - render lazy artwork, status, evidence counts, and locale-aware scores with at most two fractional digits in responsive
   semantic tables; and
-- give a concise score distinction up front while keeping detailed status and non-comparability help in a disclosure.
+- give a concise score distinction up front while keeping detailed status and non-comparability help in a disclosure;
+- link every game name to its exact official Steam store page in a safe new tab.
 
 Friend leaderboard sharing is disabled by default and controlled from Account & Security. Enabling it allows a user to
 discover current Steam friends who also opted in and open their deliberately scoreless ranked-game order. Steam friends

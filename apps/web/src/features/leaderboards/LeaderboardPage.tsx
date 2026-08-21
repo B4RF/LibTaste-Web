@@ -6,6 +6,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { Artwork } from "../../components/Artwork";
 import { ProblemNotice } from "../../components/ProblemNotice";
 import { copy } from "../../content/copy";
+import { steamStoreUrl } from "../../steam";
 import styles from "../../styles/App.module.css";
 import {
   getGlobalLeaderboardPage,
@@ -129,6 +130,19 @@ function PageHeader({
   );
 }
 
+function SteamGameName({ appId, name }: { appId: number; name: string }) {
+  return (
+    <a
+      href={steamStoreUrl(appId)}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={copy.leaderboards.gameLinkLabel(name)}
+    >
+      {name}
+    </a>
+  );
+}
+
 function GlobalTable({ entries }: { entries: GlobalLeaderboardEntry[] }) {
   return (
     <div
@@ -155,7 +169,9 @@ function GlobalTable({ entries }: { entries: GlobalLeaderboardEntry[] }) {
               <td className={styles.leaderboardArtwork}>
                 <Artwork src={entry.artworkUrl} name={entry.name} />
               </td>
-              <th scope="row">{entry.name}</th>
+              <th scope="row" aria-label={entry.name}>
+                <SteamGameName appId={entry.appId} name={entry.name} />
+              </th>
               <td>{entry.status === "RANKED" ? "Ranked" : "Provisional"}</td>
               <td>
                 {copy.leaderboards.global.contributors(entry.contributorCount)}
@@ -197,7 +213,9 @@ function PersonalTable({ entries }: { entries: PersonalLeaderboardEntry[] }) {
               <td className={styles.leaderboardArtwork}>
                 <Artwork src={entry.artworkUrl} name={entry.name} />
               </td>
-              <th scope="row">{entry.name}</th>
+              <th scope="row" aria-label={entry.name}>
+                <SteamGameName appId={entry.appId} name={entry.name} />
+              </th>
               <td>{entry.status === "RANKED" ? "Ranked" : "Provisional"}</td>
               <td>
                 {copy.leaderboards.personal.comparisons(entry.comparisonCount)}
@@ -317,7 +335,9 @@ function FriendLeaderboardTable({
               <td className={styles.leaderboardArtwork}>
                 <Artwork src={entry.artworkUrl} name={entry.name} />
               </td>
-              <th scope="row">{entry.name}</th>
+              <th scope="row" aria-label={entry.name}>
+                <SteamGameName appId={entry.appId} name={entry.name} />
+              </th>
             </tr>
           ))}
         </tbody>
