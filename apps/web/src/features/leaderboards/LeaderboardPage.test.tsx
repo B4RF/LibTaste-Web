@@ -121,6 +121,18 @@ describe("game leaderboards", () => {
     expect(
       (await screen.findAllByRole("rowheader")).map((cell) => cell.textContent),
     ).toEqual(["Portal", "Hades"]);
+    const steamLink = screen.getByRole("link", {
+      name: "View Portal on Steam (opens in a new tab)",
+    });
+    expect(steamLink).toHaveAttribute(
+      "href",
+      "https://store.steampowered.com/app/400",
+    );
+    expect(steamLink).toHaveAttribute("target", "_blank");
+    expect(steamLink).toHaveAttribute(
+      "rel",
+      expect.stringContaining("noopener"),
+    );
     expect(
       screen.getByRole("columnheader", { name: "Contributors" }),
     ).toBeVisible();
@@ -213,6 +225,18 @@ describe("game leaderboards", () => {
     const portalRow = screen
       .getByRole("rowheader", { name: "Portal" })
       .closest("tr")!;
+    const personalSteamLink = within(portalRow).getByRole("link", {
+      name: "View Portal on Steam (opens in a new tab)",
+    });
+    expect(personalSteamLink).toHaveAttribute(
+      "href",
+      "https://store.steampowered.com/app/400",
+    );
+    expect(personalSteamLink).toHaveAttribute("target", "_blank");
+    expect(personalSteamLink).toHaveAttribute(
+      "rel",
+      expect.stringContaining("noopener"),
+    );
     expect(within(portalRow).getByText("Not yet scored")).toBeVisible();
     expect(within(portalRow).getByText("2 comparisons")).toBeVisible();
     expect(within(portalRow).getByText("Currently owned")).toBeVisible();

@@ -213,6 +213,18 @@ describe("Steam friend leaderboards", () => {
     const portalRow = screen
       .getByRole("rowheader", { name: "Portal" })
       .closest("tr")!;
+    const steamLink = within(portalRow).getByRole("link", {
+      name: "View Portal on Steam (opens in a new tab)",
+    });
+    expect(steamLink).toHaveAttribute(
+      "href",
+      "https://store.steampowered.com/app/400",
+    );
+    expect(steamLink).toHaveAttribute("target", "_blank");
+    expect(steamLink).toHaveAttribute(
+      "rel",
+      expect.stringContaining("noopener"),
+    );
     expect(
       within(portalRow).queryByText(/score|comparison|owned|eligible/i),
     ).not.toBeInTheDocument();

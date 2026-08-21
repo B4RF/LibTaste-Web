@@ -1,9 +1,9 @@
 # SPEC-0004: Personal, global, and Steam-friend game leaderboards
 
-Status: Verified
+Status: Implemented
 Owner: Product owner  
 Created: 2026-08-09  
-Last updated: 2026-08-14
+Last updated: 2026-08-21  
 Supersedes: None  
 Superseded by: None
 
@@ -31,6 +31,7 @@ privacy boundaries explicit.
 - Friend-list privacy with Steam setup instructions, upstream availability, sharing-required, rate-limit, and generic
   friend-not-found recovery states.
 - Rank, artwork, game name, score, ranking status, and leaderboard-specific evidence counts.
+- Exact external Steam store links from game names in global, personal, and friend-ranking rows.
 - Concise, progressively disclosed explanations of provisional status and distinct personal/global score meanings.
 - Locale-aware score display with no more than two fractional digits.
 
@@ -96,6 +97,9 @@ privacy boundaries explicit.
 - **FR-018:** Privacy copy shall disclose that Steam friends are fetched only on demand, successful relationship data is
   cached by the API for no more than 15 minutes, both users must enable sharing, only ranked game order and presentation
   fields are shown, disabling revokes access immediately, and account deletion removes the sharing relationship data.
+- **FR-019:** Each global, personal, and friend-ranking game name shall be an accessible external link to
+  `https://store.steampowered.com/app/{appId}`, using the entry's App ID, opening in a new tab, and preventing the
+  opened page from controlling the LibTaste window.
 
 ## Non-functional requirements
 
@@ -229,6 +233,13 @@ failure does not reveal whether the identifier was invalid, opted out, deleted, 
 **When** a signed-out visitor opens it
 **Then** the normal protected-route sign-in state appears without a friend identity, Steam lookup, or leaderboard data
 
+### AC-018: Open a game from a leaderboard
+
+**Given** a global, personal, or friend-ranking table contains a game entry
+**When** the user activates the game's name
+**Then** the browser opens the exact official Steam store page derived from that entry's App ID in a new tab, while
+the LibTaste page remains safe and available
+
 ## Interfaces and data
 
 - Consumes `GET /api/v1/me/leaderboard` with `cursor` and `limit` parameters; the web client omits the removed legacy
@@ -275,6 +286,7 @@ the user explicitly opts in. Friend routes are protected and are not public or s
   navigation state may enhance it with a previously authorized display name but must not be required after reload.
 - Friend query keys use a dedicated user-scoped prefix so a successful disable can cancel and remove the complete
   feature cache immediately without disturbing the public global leaderboard.
+- Leaderboard game-name links reuse the shared Steam store URL helper and the existing external-link safety convention.
 
 ## Verification matrix
 
@@ -297,6 +309,7 @@ the user explicitly opts in. Friend routes are protected and are not public or s
 | AC-015 | Problem-state component/browser test | Exact private-list setup steps, official external guidance link, retry, and other safe friend recovery states in `FriendLeaderboardPage.test.tsx` and `leaderboards.spec.ts` | Passed 2026-08-14 |
 | AC-016 | Query-cache test | Successful disable and session clear cancel/remove friend data in settings/auth tests | Passed 2026-08-14 |
 | AC-017 | Route/browser test | Signed-out direct friend URL exposes no protected data in `App.test.tsx` | Passed 2026-08-14 |
+| AC-018 | Component/browser test | `LeaderboardPage.test.tsx` and `FriendLeaderboardPage.test.tsx` assert exact App-ID links, safe new-tab attributes, and preserved row-header names | Passed 2026-08-21 |
 | NFR-001 | Automated accessibility and viewport tests | Axe component audits and five-project Playwright matrix | Passed 2026-08-14 |
 | NFR-002 | Performance-oriented component test | 100-row lazy artwork and off-viewport safeguards in leaderboard component suites | Passed 2026-08-14 |
 | NFR-003 | Network/cache-boundary test | Signed-out global route makes no session or private request in component/browser suites | Passed 2026-08-14 |
@@ -316,13 +329,18 @@ the user explicitly opts in. Friend routes are protected and are not public or s
 | `npm.cmd run test --workspace apps/web -- --run src/features/leaderboards/FriendLeaderboardPage.test.tsx` | Passed: 6 tests after the new AC-015 assertion failed for the intended pre-implementation reason | 2026-08-14 |
 | `npm.cmd run verify` | Passed: format, lint, typecheck, 112 tests, coverage (90.53% statements, 84.83% branches, 91.84% functions, 92.77% lines), OpenAPI drift, and production build | 2026-08-14 |
 | `$env:MOZ_WEBRENDER='0'; $env:MOZ_HEADLESS_WIDTH='1280'; $env:MOZ_HEADLESS_HEIGHT='720'; npx.cmd playwright test e2e/leaderboards.spec.ts --workers=1` from `apps/web` | Passed: 20 tests across Chromium, Firefox, WebKit, mobile Chrome, and mobile Safari | 2026-08-14 |
+| `node scripts/validate-specs.mjs` | Passed after AC-018 implementation and lifecycle update | 2026-08-21 |
+| `npm.cmd run test --workspace apps/web -- --run src/features/leaderboards/LeaderboardPage.test.tsx src/features/leaderboards/FriendLeaderboardPage.test.tsx` | Passed: 10 focused tests, including AC-018 coverage | 2026-08-21 |
+| `npm.cmd run verify` | Passed: format, lint, typecheck, 114 tests, coverage (90.68% statements, 84.82% branches, 91.97% functions, 92.88% lines), OpenAPI drift check, and production build | 2026-08-21 |
+| `npx.cmd playwright test e2e/leaderboards.spec.ts --project=chromium --workers=1` from `apps/web` against the built preview | Passed: 4 Chromium leaderboard tests | 2026-08-21 |
+| `$env:MOZ_WEBRENDER='0'; $env:MOZ_HEADLESS_WIDTH='1280'; $env:MOZ_HEADLESS_HEIGHT='720'; npx.cmd playwright test --workers=1` from `apps/web` | Not completed: Chromium passed 24 tests; Firefox browser startup/journeys failed or hung before assertions, so the remaining matrix was stopped | 2026-08-21 |
 
 ## Completion checklist
 
 - [x] The revised specification was approved before implementation resumed.
 - [x] Tests were updated for every revised acceptance criterion.
 - [x] The implementation satisfies the revised requirements and non-goals.
-- [x] Applicable contract, web, and spec checks pass after the revision.
+- [ ] Applicable contract, web, and spec checks pass after the revision; the Firefox browser matrix remains blocked by the environment.
 - [x] Required README and changelog updates are complete; no architectural decision changed, so no ADR is required.
 - [x] The verification matrix contains no pending entries.
-- [x] Status is `Verified` only after every item above is complete.
+- [ ] Status is `Verified` only after every item above is complete.

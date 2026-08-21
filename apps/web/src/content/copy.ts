@@ -228,6 +228,8 @@ export const copy = {
     loadMore: "Load more",
     retryMore: "Retry loading more",
     scoringInfo: "How scoring works",
+    gameLinkLabel: (name: string) =>
+      `View ${name} on Steam (opens in a new tab)`,
     rateLimited:
       "Leaderboard requests are temporarily rate limited. Wait for the API cooldown before trying again.",
     columns: {
